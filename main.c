@@ -20,6 +20,9 @@
 #define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
 #define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER 12
 
+#define OPTIONAL_HEADER_MAGIC_PE32	0x010b
+#define OPTIONAL_HEADER_MAGIC_PE32_PLUS	0x020b
+
 typedef struct _IMAGE_DATA_DIRECTORY {
 	uint32_t VirtualAddress;
 	uint32_t Size;
@@ -44,6 +47,12 @@ struct optional_header_standard_fields {
 	uint32_t SizeOfUninitializedData;
 	uint32_t AddressOfEntryPoint;
 	uint32_t BaseOfCode;
+};
+struct optional_header_pe32_extra_field {
+	uint32_t BaseOfData;
+};
+
+struct optional_header_windows_specific_fields {
 	uint64_t ImageBase;
 	uint32_t SectionAlignment;
 	uint32_t FileAlignment;
@@ -157,6 +166,8 @@ int main(int argc, char *argv[])
 	uint32_t pe_offset;
 	struct coff_header coff;
 	struct optional_header_standard_fields ohs;
+	struct optional_header_pe32_extra_field ohpx;
+	struct optional_header_windows_specific_fields ohw;
 	struct section_header sh;
 
 	off_t pos;
@@ -205,26 +216,39 @@ int main(int argc, char *argv[])
 	if (coff.NumberOfSymbols) {
 		fprintf(stderr, "NumberOfSymbols should be 0.\n");
 	}
-	if (sizeof(ohs) != coff.SizeOfOptionalHeader) {
-		fprintf(stderr, "Size of optional header: 0x%x != 0x%x\n",
-		coff.SizeOfOptionalHeader, sizeof(ohs));
-	}
 	printf("Characteristics 0x%x\n", coff.Characteristics);
 
 	pos += sizeof(coff);
 	rds(fd, pos, &ohs);
 	pos += coff.SizeOfOptionalHeader;
+	printf("Image type: ");
 	switch (ohs.Magic) {
-	case 0x020b:
+	case OPTIONAL_HEADER_MAGIC_PE32:
+		printf("PE32\n");
+		rds(fd, pos, &ohpx);
+		if (sizeof(ohs) + sizeof(ohpx) + sizeof(ohw) !=
+		    coff.SizeOfOptionalHeader) {
+			fprintf(stderr,
+				"Size of optional header: 0x%x != 0x%x\n",
+			coff.SizeOfOptionalHeader,
+			sizeof(ohs) + sizeof(ohpx) + sizeof(ohw));
+		}
+		break;
+	case OPTIONAL_HEADER_MAGIC_PE32_PLUS:
 		printf("PE32+\n");
+		if (sizeof(ohs) + sizeof(ohw) != coff.SizeOfOptionalHeader) {
+			fprintf(stderr,
+				"Size of optional header: 0x%x != 0x%x\n",
+			coff.SizeOfOptionalHeader, sizeof(ohs) + sizeof(ohw));
+		}
 		break;
 	default:
-		fprintf(stderr, "Wrong OHS Magic\n");
+		fprintf(stderr, "Wrong OHS Magic 0x%04x\n", ohs.Magic);
 		exit(EXIT_FAILURE);
 	}
-	printf("Magic 0x%x\n", ohs.Magic);
+	rds(fd, pos, &ohw);
 
-	switch(ohs.Subsystem) {
+	switch(ohw.Subsystem) {
 	case IMAGE_SUBSYSTEM_EFI_APPLICATION:
 		printf("EFI application\n");
 		break;
@@ -235,14 +259,14 @@ int main(int argc, char *argv[])
 		printf("EFI runtime driver\n");
 		break;
 	default:
-		fprintf(stderr, "Illegal Windows subsystem %d", ohs.Subsystem);
+		fprintf(stderr, "Illegal Windows subsystem %d", ohw.Subsystem);
 	}
 
-	printf("ImageBase=0x%lx\n", ohs.ImageBase);
+	printf("ImageBase=0x%lx\n", ohw.ImageBase);
 	printf("AddressOfEntryPoint=0x%lx\n", ohs.AddressOfEntryPoint);
 	printf("BaseOfCode=0x%lx\n", ohs.BaseOfCode);
-	printf(".reloc.address=0x%x\n", ohs.BaseRelocationTable.VirtualAddress);
-	printf(".reloc.size=0x%x\n", ohs.BaseRelocationTable.Size);
+	printf(".reloc.address=0x%x\n", ohw.BaseRelocationTable.VirtualAddress);
+	printf(".reloc.size=0x%x\n", ohw.BaseRelocationTable.Size);
 
 	printf("Number of Sections %d\n", coff.NumberOfSections);
 
@@ -258,11 +282,16 @@ int main(int argc, char *argv[])
 		if (sh.SizeOfRawData);
 			printf("Size of raw data 0x%x\n", sh.SizeOfRawData);
 		if (sh.PointerToRawData);
-			printf("Pointer to raw data 0x%x\n", sh.PointerToRawData);
+			printf("Pointer to raw data 0x%x\n",
+			       sh.PointerToRawData);
+		if (sh.PointerToRelocations)
+			printf("Pointer to relocations 0x%x\n",
+			       sh.PointerToRelocations);
 		if (sh.NumberOfRelocations)
 			printf("%d relocations\n", sh.NumberOfRelocations);
 		if (sh.NumberOfLinenumbers)
-			printf("%d number of line numbers\n", sh.NumberOfLinenumbers);
+			printf("%d number of line numbers\n",
+			       sh.NumberOfLinenumbers);
 		if (!strcmp(sh.Name, ".reloc"))
 			printf("BINGO\n");
 	}
