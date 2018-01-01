@@ -11,7 +11,10 @@
 
 #define rds(A,B,C) read_structure(A, B, sizeof(*C), C)
 
-#define IMAGE_FILE_MACHINE_ARM64 0xaa64
+#define IMAGE_FILE_MACHINE_AMD64	0x8664
+#define IMAGE_FILE_MACHINE_I386		0x014c
+#define IMAGE_FILE_MACHINE_ARM		0x01c0
+#define IMAGE_FILE_MACHINE_ARM64	0xaa64
 
 #define IMAGE_SUBSYSTEM_EFI_APPLICATION 10
 #define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
@@ -177,12 +180,22 @@ int main(int argc, char *argv[])
 	check_string(fd, pe_offset, 4, "PE\0\0");
 	pos = pe_offset + sizeof(pe_offset);
 	rds(fd, pos, &coff);
+	printf("Machine type: ");
 	switch (coff.Machine) {
+	case IMAGE_FILE_MACHINE_AMD64:
+		printf("x64\n");
+		break;
+	case IMAGE_FILE_MACHINE_I386:
+		printf("Intel 386\n");
+		break;
+	case IMAGE_FILE_MACHINE_ARM:
+		printf("ARM little endian\n");
+		break;
 	case IMAGE_FILE_MACHINE_ARM64:
 		printf("ARM64 little endian\n");
 		break;
 	default:
-		fprintf(stderr, "Wrong machine type\n");
+		fprintf(stderr, "Unknown machine type %04x\n", coff.Machine);
 		exit(EXIT_FAILURE);
 	}
 	if (coff.PointerToSymbolTable) {
