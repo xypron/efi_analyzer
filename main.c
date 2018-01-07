@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
 			printf("EFI runtime driver\n");
 			break;
 		default:
-			fprintf(stderr, "Illegal Windows subsystem %04x\n",
+			fprintf(stderr, "Illegal Windows subsystem %d\n",
 				ohw32.Subsystem);
 		}
 
@@ -328,7 +328,8 @@ int main(int argc, char *argv[])
 			printf("EFI runtime driver\n");
 			break;
 		default:
-			fprintf(stderr, "Illegal Windows subsystem %d", ohw.Subsystem);
+			fprintf(stderr, "Illegal Windows subsystem %d\n",
+				ohw.Subsystem);
 		}
 
 		printf("ImageBase=0x%lx\n", ohw.ImageBase);
