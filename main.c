@@ -52,6 +52,46 @@ struct optional_header_pe32_extra_field {
 	uint32_t BaseOfData;
 };
 
+struct optional_header_windows_specific_fields_32 {
+	uint32_t ImageBase;
+	uint32_t SectionAlignment;
+	uint32_t FileAlignment;
+	uint16_t MajorOperatingSystemVersion;
+	uint16_t MinorOperatingSystemVersion;
+	uint16_t MajorImageVersion;
+	uint16_t MinorImageVersion;
+	uint16_t MajorSubsystemVersion;
+	uint16_t MinorSubsystemVersion;
+	uint32_t Win32VersionValue;
+	uint32_t SizeOfImage;
+	uint32_t SizeOfHeaders;
+	uint32_t CheckSum;
+	uint16_t Subsystem;
+	uint16_t DllCharacteristics;
+	uint32_t SizeOfStackReserver;
+	uint32_t SizeOfStackCommit;
+	uint32_t SizeOfHeapReserve;
+	uint32_t SizeOfHeapCommit;
+	uint32_t LoaderFlags;
+	uint32_t NumberOfRvaAndSizes;
+	IMAGE_DATA_DIRECTORY ExportTable;
+	IMAGE_DATA_DIRECTORY ImportTable;
+	IMAGE_DATA_DIRECTORY ResourceTable;
+	IMAGE_DATA_DIRECTORY ExceptionTable;
+	IMAGE_DATA_DIRECTORY CertificateTable;
+	IMAGE_DATA_DIRECTORY BaseRelocationTable;
+	IMAGE_DATA_DIRECTORY Debug;
+	IMAGE_DATA_DIRECTORY Architecture;
+	IMAGE_DATA_DIRECTORY GlobalPtr;
+	IMAGE_DATA_DIRECTORY TLSTable;
+	IMAGE_DATA_DIRECTORY LoadConfigTable;
+	IMAGE_DATA_DIRECTORY BoundImport;
+	IMAGE_DATA_DIRECTORY IAT;
+	IMAGE_DATA_DIRECTORY DelayImportDescriptor;
+	IMAGE_DATA_DIRECTORY CLRRuntimeHeaer;
+	IMAGE_DATA_DIRECTORY Reserved;
+};
+
 struct optional_header_windows_specific_fields {
 	uint64_t ImageBase;
 	uint32_t SectionAlignment;
@@ -168,9 +208,10 @@ int main(int argc, char *argv[])
 	struct optional_header_standard_fields ohs;
 	struct optional_header_pe32_extra_field ohpx;
 	struct optional_header_windows_specific_fields ohw;
+	struct optional_header_windows_specific_fields_32 ohw32;
 	struct section_header sh;
 
-	off_t pos;
+	off_t pos, pos_tables;
 
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s FILENAME\n",
@@ -211,7 +252,6 @@ int main(int argc, char *argv[])
 	}
 	if (coff.PointerToSymbolTable) {
 		fprintf(stderr, "PointerToSymbolTable should be 0.\n");
-		exit(EXIT_FAILURE);
 	}
 	if (coff.NumberOfSymbols) {
 		fprintf(stderr, "NumberOfSymbols should be 0.\n");
@@ -220,18 +260,20 @@ int main(int argc, char *argv[])
 
 	pos += sizeof(coff);
 	rds(fd, pos, &ohs);
-	pos += coff.SizeOfOptionalHeader;
+	pos_tables = pos + coff.SizeOfOptionalHeader;
+	pos += sizeof(ohs);
 	printf("Image type: ");
 	switch (ohs.Magic) {
 	case OPTIONAL_HEADER_MAGIC_PE32:
 		printf("PE32\n");
 		rds(fd, pos, &ohpx);
-		if (sizeof(ohs) + sizeof(ohpx) + sizeof(ohw) !=
+		pos += sizeof(ohpx);
+		if (sizeof(ohs) + sizeof(ohpx) + sizeof(ohw32) !=
 		    coff.SizeOfOptionalHeader) {
 			fprintf(stderr,
 				"Size of optional header: 0x%x != 0x%x\n",
 			coff.SizeOfOptionalHeader,
-			sizeof(ohs) + sizeof(ohpx) + sizeof(ohw));
+			sizeof(ohs) + sizeof(ohpx) + sizeof(ohw32));
 		}
 		break;
 	case OPTIONAL_HEADER_MAGIC_PE32_PLUS:
@@ -246,30 +288,61 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Wrong OHS Magic 0x%04x\n", ohs.Magic);
 		exit(EXIT_FAILURE);
 	}
-	rds(fd, pos, &ohw);
 
-	switch(ohw.Subsystem) {
-	case IMAGE_SUBSYSTEM_EFI_APPLICATION:
-		printf("EFI application\n");
-		break;
-	case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
-		printf("EFI boot service driver\n");
-		break;
-	case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
-		printf("EFI runtime driver\n");
-		break;
-	default:
-		fprintf(stderr, "Illegal Windows subsystem %d", ohw.Subsystem);
+	if (ohs.Magic == OPTIONAL_HEADER_MAGIC_PE32) {
+		rds(fd, pos, &ohw32);
+
+		switch(ohw32.Subsystem) {
+		case IMAGE_SUBSYSTEM_EFI_APPLICATION:
+			printf("EFI application\n");
+			break;
+		case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
+			printf("EFI boot service driver\n");
+			break;
+		case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
+			printf("EFI runtime driver\n");
+			break;
+		default:
+			fprintf(stderr, "Illegal Windows subsystem %04x\n",
+				ohw32.Subsystem);
+		}
+
+		printf("ImageBase=0x%lx\n", ohw32.ImageBase);
+		printf("SectionAlignment=0x%lx\n",
+		       (unsigned long)ohw32.SectionAlignment);
+		printf("SizeOfImage=0x%lx\n", ohw32.SizeOfImage);
+		printf(".reloc.address=0x%x\n",
+		       ohw32.BaseRelocationTable.VirtualAddress);
+		printf(".reloc.size=0x%x\n", ohw32.BaseRelocationTable.Size);
+	} else {
+		rds(fd, pos, &ohw);
+
+		switch(ohw.Subsystem) {
+		case IMAGE_SUBSYSTEM_EFI_APPLICATION:
+			printf("EFI application\n");
+			break;
+		case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
+			printf("EFI boot service driver\n");
+			break;
+		case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
+			printf("EFI runtime driver\n");
+			break;
+		default:
+			fprintf(stderr, "Illegal Windows subsystem %d", ohw.Subsystem);
+		}
+
+		printf("ImageBase=0x%lx\n", ohw.ImageBase);
+		printf("SectionAlignment=0x%lx\n", ohw.SectionAlignment);
+		printf("SizeOfImage=0x%lx\n", ohw.SizeOfImage);
+		printf(".reloc.address=0x%x\n",
+		       ohw.BaseRelocationTable.VirtualAddress);
+		printf(".reloc.size=0x%x\n", ohw.BaseRelocationTable.Size);
 	}
 
-	printf("ImageBase=0x%lx\n", ohw.ImageBase);
-	printf("AddressOfEntryPoint=0x%lx\n", ohs.AddressOfEntryPoint);
 	printf("BaseOfCode=0x%lx\n", ohs.BaseOfCode);
-	printf(".reloc.address=0x%x\n", ohw.BaseRelocationTable.VirtualAddress);
-	printf(".reloc.size=0x%x\n", ohw.BaseRelocationTable.Size);
-
+	printf("AddressOfEntryPoint=0x%lx\n", ohs.AddressOfEntryPoint);
 	printf("Number of Sections %d\n", coff.NumberOfSections);
-
+	pos = pos_tables;
 	for (i = 0; i < coff.NumberOfSections; ++i) {
 		rds(fd, pos, &sh);
 		pos += sizeof(sh);
@@ -295,7 +368,6 @@ int main(int argc, char *argv[])
 		if (!strcmp(sh.Name, ".reloc"))
 			printf("BINGO\n");
 	}
-
 	close(fd);
 	return EXIT_SUCCESS;
 
