@@ -366,8 +366,6 @@ int main(int argc, char *argv[])
 		if (sh.NumberOfLinenumbers)
 			printf("%d number of line numbers\n",
 			       sh.NumberOfLinenumbers);
-		if (!strcmp(sh.Name, ".reloc"))
-			printf("BINGO\n");
 	}
 	close(fd);
 	return EXIT_SUCCESS;
