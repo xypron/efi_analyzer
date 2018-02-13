@@ -14,6 +14,8 @@
 #define IMAGE_FILE_MACHINE_AMD64	0x8664
 #define IMAGE_FILE_MACHINE_I386		0x014c
 #define IMAGE_FILE_MACHINE_ARM		0x01c0
+#define IMAGE_FILE_MACHINE_THUMB	0x01c2
+#define IMAGE_FILE_MACHINE_ARMNT	0x01c4
 #define IMAGE_FILE_MACHINE_ARM64	0xaa64
 
 #define IMAGE_SUBSYSTEM_EFI_APPLICATION 10
@@ -232,7 +234,7 @@ int main(int argc, char *argv[])
 	check_string(fd, pe_offset, 4, "PE\0\0");
 	pos = pe_offset + sizeof(pe_offset);
 	rds(fd, pos, &coff);
-	printf("Machine type: ");
+	printf("Machine type: 0x%04x, ", coff.Machine);
 	switch (coff.Machine) {
 	case IMAGE_FILE_MACHINE_AMD64:
 		printf("x64\n");
@@ -243,12 +245,17 @@ int main(int argc, char *argv[])
 	case IMAGE_FILE_MACHINE_ARM:
 		printf("ARM little endian\n");
 		break;
+	case IMAGE_FILE_MACHINE_THUMB:
+		printf("ARM Thumb/Thumb-2 Little-Endian\n");
+		break;
+	case IMAGE_FILE_MACHINE_ARMNT:
+		printf("ARM Thumb-2 Little-Endian\n");
+		break;
 	case IMAGE_FILE_MACHINE_ARM64:
 		printf("ARM64 little endian\n");
 		break;
 	default:
-		fprintf(stderr, "Unknown machine type %04x\n", coff.Machine);
-		exit(EXIT_FAILURE);
+		printf("Unknown machine type\n");
 	}
 	if (coff.PointerToSymbolTable) {
 		fprintf(stderr, "PointerToSymbolTable should be 0.\n");
