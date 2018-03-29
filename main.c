@@ -1,3 +1,8 @@
+/*
+ *  Copyright (c) 2017-2018 Heinrich Schuchardt
+ *
+ *  SPDX-License-Identifier:     BSD-2-Clause
+ */
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -147,6 +152,11 @@ struct section_header {
 	uint32_t Characteristics;
 };
 
+static void usage(char *filename)
+{
+	printf("Usage: %s FILENAME\n", filename);
+}
+
 static void read_structure(int fd, off_t pos, size_t len, void *buffer)
 {
 	off_t offset;
@@ -216,9 +226,13 @@ int main(int argc, char *argv[])
 	off_t pos, pos_tables;
 
 	if (argc != 2) {
-		fprintf(stderr, "Usage: %s FILENAME\n",
-			argv[0]);
+		usage(argv[0]);
 		exit(EXIT_FAILURE);
+	}
+
+	if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
+		usage(argv[0]);
+		exit(EXIT_SUCCESS);
 	}
 
 	fd = open(argv[1], O_RDONLY);
