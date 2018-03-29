@@ -1,5 +1,12 @@
 all:
-	gcc main.c -o analyze
+	gcc main.c -o efianalyze
 
 check:
-	./analyze
+	./efianalyze -h
+
+clean:
+	rm -f efianalyze
+
+install:
+	mkdir -p $(DESTDIR)/usr/local/bin/
+	cp efianalyze $(DESTDIR)/usr/local/bin/
