@@ -260,10 +260,10 @@ int main(int argc, char *argv[])
 		printf("ARM little endian\n");
 		break;
 	case IMAGE_FILE_MACHINE_THUMB:
-		printf("ARM Thumb/Thumb-2 Little-Endian\n");
+		printf("ARM or Thumb (\"interworking\")\n");
 		break;
 	case IMAGE_FILE_MACHINE_ARMNT:
-		printf("ARM Thumb-2 Little-Endian\n");
+		printf("ARM Thumb-2 little endian \n");
 		break;
 	case IMAGE_FILE_MACHINE_ARM64:
 		printf("ARM64 little endian\n");
