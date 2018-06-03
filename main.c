@@ -14,6 +14,15 @@
 
 #define BUFLEN 10
 
+/**
+ * Reads structure from file.
+ *
+ * The program is aborted if an error occurs.
+ *
+ * @A	file descriptor
+ * @B	position
+ * @C	structure
+ */
 #define rds(A,B,C) read_structure(A, B, sizeof(*C), C)
 
 #define IMAGE_FILE_MACHINE_AMD64	0x8664
@@ -152,11 +161,24 @@ struct section_header {
 	uint32_t Characteristics;
 };
 
+/**
+ * Prints help.
+ */
 static void usage(char *filename)
 {
 	printf("Usage: %s FILENAME\n", filename);
 }
 
+/**
+ * Reads structure from file.
+ *
+ * The program is aborted if an error occurs.
+ *
+ * @fd		file descriptor
+ * @pos		position
+ * @len		length of the buffer
+ * @buffer	target buffer
+ */
 static void read_structure(int fd, off_t pos, size_t len, void *buffer)
 {
 	off_t offset;
@@ -177,6 +199,16 @@ static void read_structure(int fd, off_t pos, size_t len, void *buffer)
 	}
 }
 
+/**
+ * Checks if a string is at the expected position in a file.
+ *
+ * The program is aborted if the string is not found.
+ *
+ * @fd		file descriptor
+ * @pos		position in file
+ * @len		length of string to compare
+ * @expected	expected string
+ */
 static void check_string(int fd, off_t pos, size_t len, const char *expected)
 {
 	off_t offset;
@@ -205,14 +237,19 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 		fprintf(stderr, "%s(%d): %s != %s\n",
 		        __FILE__, __LINE__,
 		        actual, expected);
+		exit(EXIT_FAILURE);
 	}
 }
 
-
-int main(int argc, char *argv[])
+/**
+ * Analyzes EFI binary.
+ *
+ * @fd		file descriptor
+ * @return	0 for success
+ */
+int analyze(int fd)
 {
 	int ret;
-	int fd;
 	int i;
 
 	uint32_t pe_offset;
@@ -224,22 +261,6 @@ int main(int argc, char *argv[])
 	struct section_header sh;
 
 	off_t pos, pos_tables;
-
-	if (argc != 2) {
-		usage(argv[0]);
-		exit(EXIT_FAILURE);
-	}
-
-	if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
-		usage(argv[0]);
-		exit(EXIT_SUCCESS);
-	}
-
-	fd = open(argv[1], O_RDONLY);
-	if (fd == -1) {
-		perror("Cannot open file");
-		exit(EXIT_FAILURE);
-	}
 
 	check_string(fd, 0, 2, "MZ");
 	pos = 0x3c;
@@ -391,4 +412,37 @@ int main(int argc, char *argv[])
 	close(fd);
 	return EXIT_SUCCESS;
 
+}
+
+/**
+ * Entry point.
+ *
+ * @argc	number of arguments
+ * @argv	arguments
+ * @return	0 for success
+ */
+int main(int argc, char *argv[])
+{
+	int fd, ret;
+
+	if (argc != 2) {
+		usage(argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
+	if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
+		usage(argv[0]);
+		exit(EXIT_SUCCESS);
+	}
+
+	fd = open(argv[1], O_RDONLY);
+	if (fd == -1) {
+		perror("Cannot open file");
+		exit(EXIT_FAILURE);
+	}
+
+	ret = analyze(fd);
+
+	close(fd);
+	return ret;
 }
