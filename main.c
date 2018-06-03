@@ -31,6 +31,9 @@
 #define IMAGE_FILE_MACHINE_THUMB	0x01c2
 #define IMAGE_FILE_MACHINE_ARMNT	0x01c4
 #define IMAGE_FILE_MACHINE_ARM64	0xaa64
+#define IMAGE_FILE_MACHINE_RISCV32	0x5032
+#define IMAGE_FILE_MACHINE_RISCV64	0x5064
+#define IMAGE_FILE_MACHINE_RISCV128	0x5128
 
 #define IMAGE_SUBSYSTEM_EFI_APPLICATION 10
 #define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
@@ -288,6 +291,15 @@ int analyze(int fd)
 		break;
 	case IMAGE_FILE_MACHINE_ARM64:
 		printf("ARM64 little endian\n");
+		break;
+	case IMAGE_FILE_MACHINE_RISCV32:
+		printf("RISC-V 32-bit\n");
+		break;
+	case IMAGE_FILE_MACHINE_RISCV64:
+		printf("RISC-V 64-bit\n");
+		break;
+	case IMAGE_FILE_MACHINE_RISCV128:
+		printf("RISC-V 128-bit\n");
 		break;
 	default:
 		printf("Unknown machine type\n");
