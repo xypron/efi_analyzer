@@ -189,15 +189,15 @@ static void read_structure(int fd, off_t pos, size_t len, void *buffer)
 
 	offset = lseek(fd, pos, SEEK_SET);
 	if (offset == -1) {
-		fprintf(stderr, "%s(%d): failed to lseek\n",
-		        __FILE__, __LINE__);
+		fprintf(stderr, "Failed to lseek 0x%zx\n", pos);
 		exit(EXIT_FAILURE);
 	}
 
 	count = read(fd, buffer, len);
 	if (count != len) {
-		fprintf(stderr, "%s(%d): failed to read\n",
-		        __FILE__, __LINE__);
+		fprintf(stderr,
+			"Failed to read 0x%zx bytes at offset 0x%zx\n",
+			len, pos);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -222,24 +222,29 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 	offset = lseek(fd, pos, SEEK_SET);
 	if (offset == -1) {
 		perror("");
-		fprintf(stderr, "%s(%d): failed to lseek 0x%x\n",
-		        __FILE__, __LINE__,
-		        pos);
+		fprintf(stderr, "Failed to lseek 0x%zx\n", pos);
 		exit(EXIT_FAILURE);
 	}
 
 	count = read(fd, actual, len);
 	if (count != len) {
-		fprintf(stderr, "%s(%d): failed to read\n",
-		        __FILE__, __LINE__);
+		fprintf(stderr,
+			"Failed to read 0x%zx bytes at offset 0x%zx\n",
+			len, pos);
 		exit(EXIT_FAILURE);
 	}
-	actual[count] = 0;
 
-	if (strcmp(actual, expected)) {
-		fprintf(stderr, "%s(%d): %s != %s\n",
-		        __FILE__, __LINE__,
-		        actual, expected);
+	if (memcmp(actual, expected, len)) {
+		size_t i;
+
+		actual[count] = 0;
+		for (i = 0; i < count; ++i) {
+			if (actual[i] < 0x20 || actual[i] >= 0x80)
+				actual[i] = '?';
+		}
+		fprintf(stderr,
+			"Expected '%s', found '%s' at offset 0x%zx\n",
+		        expected, actual, pos);
 		exit(EXIT_FAILURE);
 	}
 }
