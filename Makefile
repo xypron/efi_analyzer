@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: BSD-2-Clause
+
+prefix?=/usr/local
+
 all:
 	gcc main.c -o efianalyze
 
@@ -8,5 +12,5 @@ clean:
 	rm -f efianalyze
 
 install:
-	mkdir -p $(DESTDIR)/usr/local/bin/
-	cp efianalyze $(DESTDIR)/usr/local/bin/
+	mkdir -p $(DESTDIR)$(prefix)/bin/
+	cp efianalyze $(DESTDIR)$(prefix)/bin/
