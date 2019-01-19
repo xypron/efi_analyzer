@@ -408,15 +408,12 @@ int analyze(int fd)
 		pos += sizeof(sh);
 		sh.Name[8] = 0;
 		printf ("Section[%d] %s\n", i, sh.Name);
-		if (sh.VirtualSize)
-			printf("Virtual size 0x%x\n", sh.VirtualSize);
-		if (sh.VirtualAddress)
-			printf("Virtual adress 0x%x\n", sh.VirtualAddress);
-		if (sh.SizeOfRawData);
-			printf("Size of raw data 0x%x\n", sh.SizeOfRawData);
-		if (sh.PointerToRawData);
-			printf("Pointer to raw data 0x%x\n",
-			       sh.PointerToRawData);
+		printf("Virtual size 0x%x\n", sh.VirtualSize);
+		printf("Virtual address 0x%x\n", sh.VirtualAddress);
+		printf("Size of raw data 0x%x\n", sh.SizeOfRawData);
+		printf("Pointer to raw data 0x%x\n", sh.PointerToRawData);
+		printf("End of raw data 0x%x\n",
+		       sh.PointerToRawData + sh.SizeOfRawData);
 		if (sh.PointerToRelocations)
 			printf("Pointer to relocations 0x%x\n",
 			       sh.PointerToRelocations);
