@@ -15,13 +15,13 @@
 #define BUFLEN 10
 
 /**
- * Reads structure from file.
+ * rds() - read structure from file.
  *
  * The program is aborted if an error occurs.
  *
- * @A	file descriptor
- * @B	position
- * @C	structure
+ * @A:	file descriptor
+ * @B:	position
+ * @C:	structure
  */
 #define rds(A,B,C) read_structure(A, B, sizeof(*C), C)
 
@@ -165,22 +165,23 @@ struct section_header {
 };
 
 /**
- * Prints help.
+ * usage() - prints help.
  */
-static void usage(char *filename)
+static void usage(void)
 {
-	printf("Usage: %s FILENAME\n", filename);
+	printf("Usage: efianalyze FILENAME\n");
+	printf("Analyze UEFI binary\n");
 }
 
 /**
- * Reads structure from file.
+ * read_structure - read structure from file
  *
  * The program is aborted if an error occurs.
  *
- * @fd		file descriptor
- * @pos		position
- * @len		length of the buffer
- * @buffer	target buffer
+ * @fd:		file descriptor
+ * @pos:	position
+ * @len:	length of the buffer
+ * @buffer:	target buffer
  */
 static void read_structure(int fd, off_t pos, size_t len, void *buffer)
 {
@@ -196,21 +197,21 @@ static void read_structure(int fd, off_t pos, size_t len, void *buffer)
 	count = read(fd, buffer, len);
 	if (count != len) {
 		fprintf(stderr,
-			"Failed to read 0x%zx bytes at offset 0x%zx\n",
-			len, pos);
+		        "Failed to read 0x%zx bytes at offset 0x%zx\n",
+		        len, pos);
 		exit(EXIT_FAILURE);
 	}
 }
 
 /**
- * Checks if a string is at the expected position in a file.
+ * check_string () - checks if a string is at the expected position in a file
  *
  * The program is aborted if the string is not found.
  *
- * @fd		file descriptor
- * @pos		position in file
- * @len		length of string to compare
- * @expected	expected string
+ * @fd:		file descriptor
+ * @pos:	position in file
+ * @len:	length of string to compare
+ * @expected:	expected string
  */
 static void check_string(int fd, off_t pos, size_t len, const char *expected)
 {
@@ -229,8 +230,8 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 	count = read(fd, actual, len);
 	if (count != len) {
 		fprintf(stderr,
-			"Failed to read 0x%zx bytes at offset 0x%zx\n",
-			len, pos);
+		        "Failed to read 0x%zx bytes at offset 0x%zx\n",
+		        len, pos);
 		exit(EXIT_FAILURE);
 	}
 
@@ -243,17 +244,17 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 				actual[i] = '?';
 		}
 		fprintf(stderr,
-			"Expected '%s', found '%s' at offset 0x%zx\n",
+		        "Expected '%s', found '%s' at offset 0x%zx\n",
 		        expected, actual, pos);
 		exit(EXIT_FAILURE);
 	}
 }
 
 /**
- * Analyzes EFI binary.
+ * analyze() -  analyze EFI binary
  *
- * @fd		file descriptor
- * @return	0 for success
+ * @fd:		file descriptor
+ * Return:	0 for success
  */
 int analyze(int fd)
 {
@@ -330,17 +331,17 @@ int analyze(int fd)
 		if (sizeof(ohs) + sizeof(ohpx) + sizeof(ohw32) !=
 		    coff.SizeOfOptionalHeader) {
 			fprintf(stderr,
-				"Size of optional header: 0x%x != 0x%x\n",
-			coff.SizeOfOptionalHeader,
-			sizeof(ohs) + sizeof(ohpx) + sizeof(ohw32));
+			        "Size of optional header: 0x%x != 0x%x\n",
+			        coff.SizeOfOptionalHeader,
+			        sizeof(ohs) + sizeof(ohpx) + sizeof(ohw32));
 		}
 		break;
 	case OPTIONAL_HEADER_MAGIC_PE32_PLUS:
 		printf("PE32+\n");
 		if (sizeof(ohs) + sizeof(ohw) != coff.SizeOfOptionalHeader) {
 			fprintf(stderr,
-				"Size of optional header: 0x%x != 0x%x\n",
-			coff.SizeOfOptionalHeader, sizeof(ohs) + sizeof(ohw));
+			        "Size of optional header: 0x%x != 0x%x\n",
+			        coff.SizeOfOptionalHeader, sizeof(ohs) + sizeof(ohw));
 		}
 		break;
 	default:
@@ -363,7 +364,7 @@ int analyze(int fd)
 			break;
 		default:
 			fprintf(stderr, "Illegal Windows subsystem %d\n",
-				ohw32.Subsystem);
+			        ohw32.Subsystem);
 		}
 
 		printf("ImageBase=0x%lx\n", ohw32.ImageBase);
@@ -388,7 +389,7 @@ int analyze(int fd)
 			break;
 		default:
 			fprintf(stderr, "Illegal Windows subsystem %d\n",
-				ohw.Subsystem);
+			        ohw.Subsystem);
 		}
 
 		printf("ImageBase=0x%lx\n", ohw.ImageBase);
@@ -429,23 +430,23 @@ int analyze(int fd)
 }
 
 /**
- * Entry point.
+ * main() - entry point
  *
- * @argc	number of arguments
- * @argv	arguments
- * @return	0 for success
+ * @argc:	number of arguments
+ * @argv:	comand line arguments
+ * Return:	0 for success
  */
 int main(int argc, char *argv[])
 {
 	int fd, ret;
 
 	if (argc != 2) {
-		usage(argv[0]);
+		usage();
 		exit(EXIT_FAILURE);
 	}
 
 	if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
-		usage(argv[0]);
+		usage();
 		exit(EXIT_SUCCESS);
 	}
 
