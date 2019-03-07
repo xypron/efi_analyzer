@@ -1,7 +1,8 @@
+// SPDX-License-Identifier:     BSD-2-Clause
 /*
- *  Copyright (c) 2017-2018 Heinrich Schuchardt
+ * Copyright (c) 2017-2019 Heinrich Schuchardt
  *
- *  SPDX-License-Identifier:     BSD-2-Clause
+ * Tool to analyze UEFI binaries
  */
 #include <fcntl.h>
 #include <stdio.h>
@@ -251,35 +252,14 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 }
 
 /**
- * analyze() -  analyze EFI binary
+ * print_machine_type() - print manche type
  *
- * @fd:		file descriptor
- * Return:	0 for success
+ * @machine:	machine type
  */
-int analyze(int fd)
+void print_machine_type(uint16_t machine)
 {
-	int ret;
-	int i;
-
-	uint32_t pe_offset;
-	struct coff_header coff;
-	struct optional_header_standard_fields ohs;
-	struct optional_header_pe32_extra_field ohpx;
-	struct optional_header_windows_specific_fields ohw;
-	struct optional_header_windows_specific_fields_32 ohw32;
-	struct section_header sh;
-
-	off_t pos, pos_tables;
-
-	check_string(fd, 0, 2, "MZ");
-	pos = 0x3c;
-	rds(fd, pos, &pe_offset);
-	printf("Offset to PE = %x\n", pe_offset);
-	check_string(fd, pe_offset, 4, "PE\0\0");
-	pos = pe_offset + sizeof(pe_offset);
-	rds(fd, pos, &coff);
-	printf("Machine type: 0x%04x, ", coff.Machine);
-	switch (coff.Machine) {
+	printf("Machine type: 0x%04x, ", machine);
+	switch (machine) {
 	case IMAGE_FILE_MACHINE_AMD64:
 		printf("x64\n");
 		break;
@@ -310,6 +290,37 @@ int analyze(int fd)
 	default:
 		printf("Unknown machine type\n");
 	}
+}
+
+/**
+ * analyze() -  analyze EFI binary
+ *
+ * @fd:		file descriptor
+ * Return:	0 for success
+ */
+int analyze(int fd)
+{
+	int ret;
+	int i;
+
+	uint32_t pe_offset;
+	struct coff_header coff;
+	struct optional_header_standard_fields ohs;
+	struct optional_header_pe32_extra_field ohpx;
+	struct optional_header_windows_specific_fields ohw;
+	struct optional_header_windows_specific_fields_32 ohw32;
+	struct section_header sh;
+
+	off_t pos, pos_tables;
+
+	check_string(fd, 0, 2, "MZ");
+	pos = 0x3c;
+	rds(fd, pos, &pe_offset);
+	printf("Offset to PE = %x\n", pe_offset);
+	check_string(fd, pe_offset, 4, "PE\0\0");
+	pos = pe_offset + sizeof(pe_offset);
+	rds(fd, pos, &coff);
+	print_machine_type(coff.Machine);
 	if (coff.PointerToSymbolTable) {
 		fprintf(stderr, "PointerToSymbolTable should be 0.\n");
 	}
