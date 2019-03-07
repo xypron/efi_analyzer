@@ -304,7 +304,7 @@ void print_section_info(int fd, off_t pos, struct coff_header *coff)
 	int i;
 	struct section_header sh;
 
-	printf("Number of Sections %d\n", coff->NumberOfSections);
+	printf("Number of sections %d\n", coff->NumberOfSections);
 	for (i = 0; i < coff->NumberOfSections; ++i) {
 		rds(fd, pos, &sh);
 		pos += sizeof(sh);
