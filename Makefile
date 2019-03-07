@@ -3,7 +3,7 @@
 prefix?=/usr/local
 
 all:
-	gcc main.c -o efianalyze
+	gcc efianalyze.c -o efianalyze
 
 check:
 	./efianalyze -h
