@@ -322,7 +322,7 @@ void print_section_info(int fd, off_t pos, struct coff_header *coff)
 		if (sh.NumberOfRelocations)
 			printf("%d relocations\n", sh.NumberOfRelocations);
 		if (sh.NumberOfLinenumbers)
-			printf("%d number of line numbers\n",
+			printf("%d line numbers\n",
 			       sh.NumberOfLinenumbers);
 	}
 }
