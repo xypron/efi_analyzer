@@ -293,6 +293,41 @@ void print_machine_type(uint16_t machine)
 }
 
 /**
+ * print_section_info() - print section description
+ *
+ * @fd:		file descriptor
+ * @pos:	start of section information
+ * @coff:	COFF header
+ */
+void print_section_info(int fd, off_t pos, struct coff_header *coff)
+{
+	int i;
+	struct section_header sh;
+
+	printf("Number of Sections %d\n", coff->NumberOfSections);
+	for (i = 0; i < coff->NumberOfSections; ++i) {
+		rds(fd, pos, &sh);
+		pos += sizeof(sh);
+		sh.Name[8] = 0;
+		printf("Section[%d] %s\n", i, sh.Name);
+		printf("Virtual size 0x%x\n", sh.VirtualSize);
+		printf("Virtual address 0x%x\n", sh.VirtualAddress);
+		printf("Size of raw data 0x%x\n", sh.SizeOfRawData);
+		printf("Pointer to raw data 0x%x\n", sh.PointerToRawData);
+		printf("End of raw data 0x%x\n",
+		       sh.PointerToRawData + sh.SizeOfRawData);
+		if (sh.PointerToRelocations)
+			printf("Pointer to relocations 0x%x\n",
+			       sh.PointerToRelocations);
+		if (sh.NumberOfRelocations)
+			printf("%d relocations\n", sh.NumberOfRelocations);
+		if (sh.NumberOfLinenumbers)
+			printf("%d number of line numbers\n",
+			       sh.NumberOfLinenumbers);
+	}
+}
+
+/**
  * analyze() -  analyze EFI binary
  *
  * @fd:		file descriptor
@@ -302,15 +337,12 @@ int analyze(int fd)
 {
 	int ret;
 	int i;
-
 	uint32_t pe_offset;
 	struct coff_header coff;
 	struct optional_header_standard_fields ohs;
 	struct optional_header_pe32_extra_field ohpx;
 	struct optional_header_windows_specific_fields ohw;
 	struct optional_header_windows_specific_fields_32 ohw32;
-	struct section_header sh;
-
 	off_t pos, pos_tables;
 
 	check_string(fd, 0, 2, "MZ");
@@ -413,28 +445,8 @@ int analyze(int fd)
 
 	printf("BaseOfCode=0x%lx\n", ohs.BaseOfCode);
 	printf("AddressOfEntryPoint=0x%lx\n", ohs.AddressOfEntryPoint);
-	printf("Number of Sections %d\n", coff.NumberOfSections);
-	pos = pos_tables;
-	for (i = 0; i < coff.NumberOfSections; ++i) {
-		rds(fd, pos, &sh);
-		pos += sizeof(sh);
-		sh.Name[8] = 0;
-		printf ("Section[%d] %s\n", i, sh.Name);
-		printf("Virtual size 0x%x\n", sh.VirtualSize);
-		printf("Virtual address 0x%x\n", sh.VirtualAddress);
-		printf("Size of raw data 0x%x\n", sh.SizeOfRawData);
-		printf("Pointer to raw data 0x%x\n", sh.PointerToRawData);
-		printf("End of raw data 0x%x\n",
-		       sh.PointerToRawData + sh.SizeOfRawData);
-		if (sh.PointerToRelocations)
-			printf("Pointer to relocations 0x%x\n",
-			       sh.PointerToRelocations);
-		if (sh.NumberOfRelocations)
-			printf("%d relocations\n", sh.NumberOfRelocations);
-		if (sh.NumberOfLinenumbers)
-			printf("%d number of line numbers\n",
-			       sh.NumberOfLinenumbers);
-	}
+	print_section_info(fd, pos_tables, &coff);
+
 	close(fd);
 	return EXIT_SUCCESS;
 
