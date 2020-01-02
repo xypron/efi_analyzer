@@ -36,6 +36,41 @@
 #define IMAGE_FILE_MACHINE_RISCV64	0x5064
 #define IMAGE_FILE_MACHINE_RISCV128	0x5128
 
+#define IMAGE_FILE_RELOCS_STRIPPED		0x0001
+#define IMAGE_FILE_EXECUTABLE_IMAGE		0x0002
+#define IMAGE_FILE_LINE_NUMS_STRIPPED		0x0004
+#define IMAGE_FILE_LOCAL_SYMS_STRIPPED		0x0008
+#define IMAGE_FILE_AGGRESIVE_WS_TRIM		0x0010
+#define IMAGE_FILE_LARGE_ADDRESS_AWARE		0x0020
+#define IMAGE_FILE_BYTES_REVERSED_LO		0x0080
+#define IMAGE_FILE_32BIT_MACHINE		0x0100
+#define IMAGE_FILE_DEBUG_STRIPPED		0x0200
+#define IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP	0x0400
+#define IMAGE_FILE_NET_RUN_FROM_SWAP		0x0800
+#define IMAGE_FILE_SYSTEM			0x1000
+#define IMAGE_FILE_DLL				0x2000
+#define IMAGE_FILE_UP_SYSTEM_ONLY		0x4000
+#define IMAGE_FILE_BYTES_REVERSED_HI		0x8000
+
+char *characteristic_strings[] = {
+	"Relocation information was stripped from the file.",
+	"The file is executable.",
+	"COFF line numbers were stripped from the file.",
+	"COFF symbol table entries were stripped from file.",
+	"Aggressively trim the working set. This value is obsolete.",
+	"The application can handle addresses larger than 2 GiB.",
+	"Use of this flag is reserved for future use.",
+	"Little endian: LSB precedes MSB in memory.",
+	"The computer supports 32-bit words.",
+	"Debugging information was removed.",
+	"If the image is on removable media, copy and run from swap file.",
+	"If the image is on the network, copy and run from swap file.",
+	"The image is a system file.",
+	"The image is a dynamic link library (DLL).",
+	"The file should be run only on a uniprocessor computer.",
+	"Big endian: MSB precedes LSB in memory.",
+};
+
 #define IMAGE_SUBSYSTEM_EFI_APPLICATION 10
 #define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
 #define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER 12
@@ -172,6 +207,20 @@ static void usage(void)
 {
 	printf("Usage: efianalyze FILENAME\n");
 	printf("Analyze UEFI binary\n");
+}
+
+/**
+ * print_characteristics - print characteristics
+ */
+void print_characteristics(uint16_t c)
+{
+	unsigned int i, mask = 1;
+
+	printf("Characteristics: 0x%x\n", c);
+	for (i = 0; i < 16; ++i, mask <<= 1) {
+		if (c & mask)
+			printf("  * %s\n", characteristic_strings[i]);
+	}
 }
 
 /**
@@ -359,7 +408,7 @@ int analyze(int fd)
 	if (coff.NumberOfSymbols) {
 		fprintf(stderr, "NumberOfSymbols should be 0.\n");
 	}
-	printf("Characteristics: 0x%x\n", coff.Characteristics);
+	print_characteristics(coff.Characteristics);
 
 	pos += sizeof(coff);
 	rds(fd, pos, &ohs);
