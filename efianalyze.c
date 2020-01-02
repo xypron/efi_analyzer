@@ -31,6 +31,7 @@
 #define IMAGE_FILE_MACHINE_ARM		0x01c0
 #define IMAGE_FILE_MACHINE_THUMB	0x01c2
 #define IMAGE_FILE_MACHINE_ARMNT	0x01c4
+#define IMAGE_FILE_MACHINE_EBC		0x0ebc
 #define IMAGE_FILE_MACHINE_ARM64	0xaa64
 #define IMAGE_FILE_MACHINE_RISCV32	0x5032
 #define IMAGE_FILE_MACHINE_RISCV64	0x5064
@@ -385,6 +386,9 @@ void print_machine_type(uint16_t machine)
 		break;
 	case IMAGE_FILE_MACHINE_RISCV128:
 		printf("RISC-V 128-bit\n");
+		break;
+	case IMAGE_FILE_MACHINE_EBC:
+		printf("EFI byte code\n");
 		break;
 	default:
 		printf("Unknown machine type\n");
