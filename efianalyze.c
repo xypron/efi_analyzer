@@ -359,19 +359,19 @@ void print_section_info(int fd, off_t pos, struct coff_header *coff)
 		pos += sizeof(sh);
 		sh.Name[8] = 0;
 		printf("Section[%d]: %s\n", i, sh.Name);
-		printf("Virtual size: 0x%x\n", sh.VirtualSize);
-		printf("Virtual address: 0x%x\n", sh.VirtualAddress);
-		printf("Size of raw data: 0x%x\n", sh.SizeOfRawData);
-		printf("Pointer to raw data: 0x%x\n", sh.PointerToRawData);
-		printf("End of raw data: 0x%x\n",
+		printf("  Virtual size: 0x%x\n", sh.VirtualSize);
+		printf("  Virtual address: 0x%x\n", sh.VirtualAddress);
+		printf("  Size of raw data: 0x%x\n", sh.SizeOfRawData);
+		printf("  Pointer to raw data: 0x%x\n", sh.PointerToRawData);
+		printf("  End of raw data: 0x%x\n",
 		       sh.PointerToRawData + sh.SizeOfRawData);
 		if (sh.PointerToRelocations)
-			printf("Pointer to relocations: 0x%x\n",
+			printf("  Pointer to relocations: 0x%x\n",
 			       sh.PointerToRelocations);
 		if (sh.NumberOfRelocations)
-			printf("%d relocations\n", sh.NumberOfRelocations);
+			printf("  %d relocations\n", sh.NumberOfRelocations);
 		if (sh.NumberOfLinenumbers)
-			printf("%d line numbers\n",
+			printf("  %d line numbers\n",
 			       sh.NumberOfLinenumbers);
 	}
 }
