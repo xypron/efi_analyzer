@@ -309,15 +309,15 @@ void print_section_info(int fd, off_t pos, struct coff_header *coff)
 		rds(fd, pos, &sh);
 		pos += sizeof(sh);
 		sh.Name[8] = 0;
-		printf("Section[%d] %s\n", i, sh.Name);
-		printf("Virtual size 0x%x\n", sh.VirtualSize);
-		printf("Virtual address 0x%x\n", sh.VirtualAddress);
-		printf("Size of raw data 0x%x\n", sh.SizeOfRawData);
-		printf("Pointer to raw data 0x%x\n", sh.PointerToRawData);
-		printf("End of raw data 0x%x\n",
+		printf("Section[%d]: %s\n", i, sh.Name);
+		printf("Virtual size: 0x%x\n", sh.VirtualSize);
+		printf("Virtual address: 0x%x\n", sh.VirtualAddress);
+		printf("Size of raw data: 0x%x\n", sh.SizeOfRawData);
+		printf("Pointer to raw data: 0x%x\n", sh.PointerToRawData);
+		printf("End of raw data: 0x%x\n",
 		       sh.PointerToRawData + sh.SizeOfRawData);
 		if (sh.PointerToRelocations)
-			printf("Pointer to relocations 0x%x\n",
+			printf("Pointer to relocations: 0x%x\n",
 			       sh.PointerToRelocations);
 		if (sh.NumberOfRelocations)
 			printf("%d relocations\n", sh.NumberOfRelocations);
@@ -348,7 +348,7 @@ int analyze(int fd)
 	check_string(fd, 0, 2, "MZ");
 	pos = 0x3c;
 	rds(fd, pos, &pe_offset);
-	printf("Offset to PE = %x\n", pe_offset);
+	printf("Offset to PE: 0x%x\n", pe_offset);
 	check_string(fd, pe_offset, 4, "PE\0\0");
 	pos = pe_offset + sizeof(pe_offset);
 	rds(fd, pos, &coff);
@@ -359,7 +359,7 @@ int analyze(int fd)
 	if (coff.NumberOfSymbols) {
 		fprintf(stderr, "NumberOfSymbols should be 0.\n");
 	}
-	printf("Characteristics 0x%x\n", coff.Characteristics);
+	printf("Characteristics: 0x%x\n", coff.Characteristics);
 
 	pos += sizeof(coff);
 	rds(fd, pos, &ohs);
@@ -410,13 +410,13 @@ int analyze(int fd)
 			        ohw32.Subsystem);
 		}
 
-		printf("ImageBase=0x%lx\n", ohw32.ImageBase);
-		printf("SectionAlignment=0x%lx\n",
+		printf("ImageBase: 0x%lx\n", ohw32.ImageBase);
+		printf("SectionAlignment: 0x%lx\n",
 		       (unsigned long)ohw32.SectionAlignment);
-		printf("SizeOfImage=0x%lx\n", ohw32.SizeOfImage);
-		printf(".reloc.address=0x%x\n",
+		printf("SizeOfImage: 0x%lx\n", ohw32.SizeOfImage);
+		printf(".reloc.address: 0x%x\n",
 		       ohw32.BaseRelocationTable.VirtualAddress);
-		printf(".reloc.size=0x%x\n", ohw32.BaseRelocationTable.Size);
+		printf(".reloc.size: 0x%x\n", ohw32.BaseRelocationTable.Size);
 	} else {
 		rds(fd, pos, &ohw);
 
@@ -435,16 +435,16 @@ int analyze(int fd)
 			        ohw.Subsystem);
 		}
 
-		printf("ImageBase=0x%lx\n", ohw.ImageBase);
-		printf("SectionAlignment=0x%lx\n", ohw.SectionAlignment);
-		printf("SizeOfImage=0x%lx\n", ohw.SizeOfImage);
-		printf(".reloc.address=0x%x\n",
+		printf("ImageBase: 0x%lx\n", ohw.ImageBase);
+		printf("SectionAlignment: 0x%lx\n", ohw.SectionAlignment);
+		printf("SizeOfImage: 0x%lx\n", ohw.SizeOfImage);
+		printf(".reloc.address: 0x%x\n",
 		       ohw.BaseRelocationTable.VirtualAddress);
-		printf(".reloc.size=0x%x\n", ohw.BaseRelocationTable.Size);
+		printf(".reloc.size: 0x%x\n", ohw.BaseRelocationTable.Size);
 	}
 
-	printf("BaseOfCode=0x%lx\n", ohs.BaseOfCode);
-	printf("AddressOfEntryPoint=0x%lx\n", ohs.AddressOfEntryPoint);
+	printf("BaseOfCode: 0x%lx\n", ohs.BaseOfCode);
+	printf("AddressOfEntryPoint: 0x%lx\n", ohs.AddressOfEntryPoint);
 	print_section_info(fd, pos_tables, &coff);
 
 	close(fd);
