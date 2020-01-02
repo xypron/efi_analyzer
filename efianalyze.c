@@ -71,6 +71,41 @@ char *characteristic_strings[] = {
 	"Big endian: MSB precedes LSB in memory.",
 };
 
+char *section_characteristics[] = {
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"The section should not be padded to the next boundary.",
+	"Reserved.",
+	"The section contains executable code.",
+	"The section contains initialized data.",
+	"The section contains uninitialized data.",
+	"Reserved.",
+	"The section contains comments or other information.",
+	"Reserved.",
+	"The section will not become part of the image.",
+	"The section contains COMDAT data.",
+	"Reserved.",
+	"Reset speculative exceptions handling bits in the TLB entries.",
+	"The section contains data referenced through the global pointer.",
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Align data on a 1-byte boundary.",
+	"Align data on a 2-byte boundary.",
+	"Align data on a 8-byte boundary.",
+	"Align data on a 128-byte boundary.",
+	"The section contains extended relocations.",
+	"The section can be discarded as needed.",
+	"The section cannot be cached.",
+	"The section cannot be paged.",
+	"The section can be shared in memory.",
+	"The section can be executed as code.",
+	"The section can be read.",
+	"The section can be written to.",
+};
+
 #define IMAGE_SUBSYSTEM_EFI_APPLICATION 10
 #define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
 #define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER 12
@@ -224,6 +259,20 @@ void print_characteristics(uint16_t c)
 }
 
 /**
+ * print_section_characteristics - print section characteristics
+ */
+void print_section_characteristics(uint32_t c)
+{
+	unsigned int i, mask = 1;
+
+	printf("  Characteristics: 0x%08x\n", c);
+	for (i = 0; i < 32; ++i, mask <<= 1) {
+		if (c & mask)
+			printf("    * %s\n", section_characteristics[i]);
+	}
+}
+
+/**
  * read_structure - read structure from file
  *
  * The program is aborted if an error occurs.
@@ -373,6 +422,7 @@ void print_section_info(int fd, off_t pos, struct coff_header *coff)
 		if (sh.NumberOfLinenumbers)
 			printf("  %d line numbers\n",
 			       sh.NumberOfLinenumbers);
+		print_section_characteristics(sh.Characteristics);
 	}
 }
 
