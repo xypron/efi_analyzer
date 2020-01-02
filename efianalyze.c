@@ -108,9 +108,10 @@ char *section_characteristics[] = {
 	"The section can be written to.",
 };
 
-#define IMAGE_SUBSYSTEM_EFI_APPLICATION 10
+#define IMAGE_SUBSYSTEM_EFI_APPLICATION		10
 #define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
-#define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER 12
+#define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER	12
+#define IMAGE_SUBSYSTEM_EFI_ROM			13
 
 #define OPTIONAL_HEADER_MAGIC_PE32	0x010b
 #define OPTIONAL_HEADER_MAGIC_PE32_PLUS	0x020b
@@ -235,6 +236,17 @@ struct section_header {
 	uint16_t NumberOfRelocations;
 	uint16_t NumberOfLinenumbers;
 	uint32_t Characteristics;
+};
+
+struct pci_expansion_rom_header {
+	uint16_t Signature;
+	uint16_t InitializationSize;
+	uint32_t EfiSignature;
+	uint32_t EfiMachineType;
+	uint16_t CompressionType;
+	uint8_t Reserved[8];
+	uint16_t EfiImageHeaderOffset;
+	uint16_t PcirOffset;
 };
 
 /**
@@ -432,6 +444,56 @@ void print_section_info(int fd, off_t pos, struct coff_header *coff)
 }
 
 /**
+ * skip_pci_rom_header() - skip EFI PCI Expansion ROM Header
+ *
+ * @fd:		file descriptor
+ * Return:	offset to EFI image
+ */
+uint32_t skip_pci_rom_header(int fd)
+{
+	struct pci_expansion_rom_header hd;
+
+	rds(fd, 0, &hd);
+
+	if (hd.Signature != 0xaa55)
+		return 0;
+	if (hd.EfiSignature != 0x0ef1)
+		return 0;
+	printf("EFI PCI Expansion ROM\n");
+	if (hd.CompressionType) {
+		printf("Compressed image not supported\n");
+		exit(EXIT_FAILURE);
+	}
+	return hd.EfiImageHeaderOffset;
+}
+
+/**
+ * print_subsystem() - print Windows subsystem
+ *
+ * @subsystem:	subsystem
+ */
+void print_subsystem(uint16_t subsystem)
+{
+	printf("Subsystem: ");
+	switch(subsystem) {
+	case IMAGE_SUBSYSTEM_EFI_APPLICATION:
+		printf("EFI application\n");
+		break;
+	case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
+		printf("EFI boot service driver\n");
+		break;
+	case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
+		printf("EFI runtime driver\n");
+		break;
+	case IMAGE_SUBSYSTEM_EFI_ROM:
+		printf("EFI ROM image\n");
+		break;
+	default:
+		printf("Unknown Windows subsystem %d\n", subsystem);
+	}
+}
+
+/**
  * analyze() -  analyze EFI binary
  *
  * @fd:		file descriptor
@@ -442,6 +504,7 @@ int analyze(int fd)
 	int ret;
 	int i;
 	uint32_t pe_offset;
+	uint32_t efi_offset;
 	struct coff_header coff;
 	struct optional_header_standard_fields ohs;
 	struct optional_header_pe32_extra_field ohpx;
@@ -449,10 +512,12 @@ int analyze(int fd)
 	struct optional_header_windows_specific_fields_32 ohw32;
 	off_t pos, pos_tables;
 
-	check_string(fd, 0, 2, "MZ");
-	pos = 0x3c;
+	efi_offset = skip_pci_rom_header(fd);
+	check_string(fd, efi_offset, 2, "MZ");
+	pos = efi_offset + 0x3c;
 	rds(fd, pos, &pe_offset);
 	printf("Offset to PE: 0x%x\n", pe_offset);
+	pe_offset += efi_offset;
 	check_string(fd, pe_offset, 4, "PE\0\0");
 	pos = pe_offset + sizeof(pe_offset);
 	rds(fd, pos, &coff);
@@ -499,20 +564,7 @@ int analyze(int fd)
 	if (ohs.Magic == OPTIONAL_HEADER_MAGIC_PE32) {
 		rds(fd, pos, &ohw32);
 
-		switch(ohw32.Subsystem) {
-		case IMAGE_SUBSYSTEM_EFI_APPLICATION:
-			printf("EFI application\n");
-			break;
-		case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
-			printf("EFI boot service driver\n");
-			break;
-		case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
-			printf("EFI runtime driver\n");
-			break;
-		default:
-			fprintf(stderr, "Illegal Windows subsystem %d\n",
-			        ohw32.Subsystem);
-		}
+		print_subsystem(ohw32.Subsystem);
 
 		printf("ImageBase: 0x%lx\n", ohw32.ImageBase);
 		printf("SectionAlignment: 0x%lx\n",
@@ -524,20 +576,7 @@ int analyze(int fd)
 	} else {
 		rds(fd, pos, &ohw);
 
-		switch(ohw.Subsystem) {
-		case IMAGE_SUBSYSTEM_EFI_APPLICATION:
-			printf("EFI application\n");
-			break;
-		case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
-			printf("EFI boot service driver\n");
-			break;
-		case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
-			printf("EFI runtime driver\n");
-			break;
-		default:
-			fprintf(stderr, "Illegal Windows subsystem %d\n",
-			        ohw.Subsystem);
-		}
+		print_subsystem(ohw.Subsystem);
 
 		printf("ImageBase: 0x%lx\n", ohw.ImageBase);
 		printf("SectionAlignment: 0x%lx\n", ohw.SectionAlignment);
