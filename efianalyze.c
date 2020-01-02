@@ -216,7 +216,7 @@ void print_characteristics(uint16_t c)
 {
 	unsigned int i, mask = 1;
 
-	printf("Characteristics: 0x%x\n", c);
+	printf("Characteristics: 0x%04x\n", c);
 	for (i = 0; i < 16; ++i, mask <<= 1) {
 		if (c & mask)
 			printf("  * %s\n", characteristic_strings[i]);
