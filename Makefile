@@ -14,3 +14,6 @@ clean:
 install:
 	mkdir -p $(DESTDIR)$(prefix)/bin/
 	cp efianalyze $(DESTDIR)$(prefix)/bin/
+
+uninstall:
+	rm -f $(DESTDIR)$(prefix)/bin/efianalyze
