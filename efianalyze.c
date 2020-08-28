@@ -9,8 +9,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #define BUFLEN 10
@@ -511,6 +511,15 @@ int analyze(int fd)
 	struct optional_header_windows_specific_fields ohw;
 	struct optional_header_windows_specific_fields_32 ohw32;
 	off_t pos, pos_tables;
+	long long unsigned fsize;
+	struct stat stat;
+
+	ret = fstat(fd, &stat);
+	if (ret == -1) {
+		perror("fstat failed");
+		return EXIT_FAILURE;
+	}
+	fsize = stat.st_size;
 
 	efi_offset = skip_pci_rom_header(fd);
 	check_string(fd, efi_offset, 2, "MZ");
@@ -569,7 +578,11 @@ int analyze(int fd)
 		printf("ImageBase: 0x%lx\n", ohw32.ImageBase);
 		printf("SectionAlignment: 0x%lx\n",
 		       (unsigned long)ohw32.SectionAlignment);
-		printf("SizeOfImage: 0x%lx\n", ohw32.SizeOfImage);
+		printf("SizeOfImage: 0x%x\n", (unsigned int)ohw32.SizeOfImage);
+		if ((long long unsigned)ohw32.SizeOfImage != fsize)
+			fprintf(stderr,
+				"Size of image: 0x%lx != 0x%llx\n",
+				(unsigned int)ohw32.SizeOfImage, fsize);
 		printf(".reloc.address: 0x%x\n",
 		       ohw32.BaseRelocationTable.VirtualAddress);
 		printf(".reloc.size: 0x%x\n", ohw32.BaseRelocationTable.Size);
@@ -580,7 +593,11 @@ int analyze(int fd)
 
 		printf("ImageBase: 0x%lx\n", ohw.ImageBase);
 		printf("SectionAlignment: 0x%lx\n", ohw.SectionAlignment);
-		printf("SizeOfImage: 0x%lx\n", ohw.SizeOfImage);
+		printf("SizeOfImage: 0x%x\n", (unsigned int)ohw.SizeOfImage);
+		if ((long long unsigned)ohw.SizeOfImage != fsize)
+			fprintf(stderr,
+				"Size of image: 0x%lx != 0x%llx\n",
+				(unsigned int)ohw.SizeOfImage, fsize);
 		printf(".reloc.address: 0x%x\n",
 		       ohw.BaseRelocationTable.VirtualAddress);
 		printf(".reloc.size: 0x%x\n", ohw.BaseRelocationTable.Size);
