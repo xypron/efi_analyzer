@@ -543,7 +543,7 @@ int analyze(int fd)
 		if (sizeof(ohs) + sizeof(ohpx) + sizeof(ohw32) !=
 		    coff.SizeOfOptionalHeader) {
 			fprintf(stderr,
-			        "Size of optional header: 0x%x != 0x%x\n",
+			        "Size of optional header: 0x%x != 0x%lx\n",
 			        coff.SizeOfOptionalHeader,
 			        sizeof(ohs) + sizeof(ohpx) + sizeof(ohw32));
 		}
@@ -552,7 +552,7 @@ int analyze(int fd)
 		printf("PE32+\n");
 		if (sizeof(ohs) + sizeof(ohw) != coff.SizeOfOptionalHeader) {
 			fprintf(stderr,
-			        "Size of optional header: 0x%x != 0x%x\n",
+			        "Size of optional header: 0x%x != 0x%lx\n",
 			        coff.SizeOfOptionalHeader, sizeof(ohs) + sizeof(ohw));
 		}
 		break;
@@ -566,10 +566,10 @@ int analyze(int fd)
 
 		print_subsystem(ohw32.Subsystem);
 
-		printf("ImageBase: 0x%lx\n", ohw32.ImageBase);
+		printf("ImageBase: 0x%x\n", ohw32.ImageBase);
 		printf("SectionAlignment: 0x%lx\n",
 		       (unsigned long)ohw32.SectionAlignment);
-		printf("SizeOfImage: 0x%lx\n", ohw32.SizeOfImage);
+		printf("SizeOfImage: 0x%x\n", ohw32.SizeOfImage);
 		printf(".reloc.address: 0x%x\n",
 		       ohw32.BaseRelocationTable.VirtualAddress);
 		printf(".reloc.size: 0x%x\n", ohw32.BaseRelocationTable.Size);
@@ -579,15 +579,15 @@ int analyze(int fd)
 		print_subsystem(ohw.Subsystem);
 
 		printf("ImageBase: 0x%lx\n", ohw.ImageBase);
-		printf("SectionAlignment: 0x%lx\n", ohw.SectionAlignment);
-		printf("SizeOfImage: 0x%lx\n", ohw.SizeOfImage);
+		printf("SectionAlignment: 0x%x\n", ohw.SectionAlignment);
+		printf("SizeOfImage: 0x%x\n", ohw.SizeOfImage);
 		printf(".reloc.address: 0x%x\n",
 		       ohw.BaseRelocationTable.VirtualAddress);
 		printf(".reloc.size: 0x%x\n", ohw.BaseRelocationTable.Size);
 	}
 
-	printf("BaseOfCode: 0x%lx\n", ohs.BaseOfCode);
-	printf("AddressOfEntryPoint: 0x%lx\n", ohs.AddressOfEntryPoint);
+	printf("BaseOfCode: 0x%x\n", ohs.BaseOfCode);
+	printf("AddressOfEntryPoint: 0x%x\n", ohs.AddressOfEntryPoint);
 	print_section_info(fd, pos_tables, &coff);
 
 	close(fd);
