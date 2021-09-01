@@ -423,8 +423,7 @@ void print_section_info(int fd, off_t pos, struct coff_header *coff)
 	for (i = 0; i < coff->NumberOfSections; ++i) {
 		rds(fd, pos, &sh);
 		pos += sizeof(sh);
-		sh.Name[8] = 0;
-		printf("Section[%d]: %s\n", i, sh.Name);
+		printf("Section[%d]: %.8s\n", i, sh.Name);
 		printf("  Virtual size: 0x%x\n", sh.VirtualSize);
 		printf("  Virtual address: 0x%x\n", sh.VirtualAddress);
 		printf("  Size of raw data: 0x%x\n", sh.SizeOfRawData);
