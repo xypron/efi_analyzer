@@ -273,16 +273,26 @@ void print_characteristics(uint16_t c)
 }
 
 /**
- * print_section_characteristics - print section characteristics
+ * print_section_characteristics() - print section characteristics
+ *
+ * @c:	section characteristics bitmap
  */
-void print_section_characteristics(uint32_t c)
+static void print_section_characteristics(uint32_t c)
 {
-	unsigned int i, mask = 1;
+	unsigned int i, mask = 1, align;
+
+	align = c & 0xf00000;
+	c &= ~0xf00000;
 
 	printf("  Characteristics: 0x%08x\n", c);
 	for (i = 0; i < 32; ++i, mask <<= 1) {
 		if (c & mask)
 			printf("    * %s\n", section_characteristics[i]);
+	}
+
+	if (align) {
+		align = 1 << ((align >> 20)- 1);
+		printf("    * Align data on a %u byte boundary.\n", align);
 	}
 }
 
