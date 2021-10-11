@@ -492,6 +492,27 @@ void print_subsystem(uint16_t subsystem)
 	}
 }
 
+
+/**
+ * check_alignment() - check file and section alignment
+ *
+ * @section_alignment:	section alignement
+ * @file_alignment:	file alignment
+ */
+static void check_alignment(uint32_t section_alignment, uint32_t file_alignment)
+{
+	if (section_alignment < 2 ||
+	    (section_alignment & (section_alignment - 1)))
+		printf("Illegal SectionAlignment\n");
+	printf("SectionAlignment: 0x%x\n", section_alignment);
+	if (file_alignment < 2 || file_alignment > 0x10000 ||
+	    (file_alignment & (file_alignment - 1)))
+		printf("Illegal FileAlignment\n");
+	printf("FileAlignment: 0x%x\n", file_alignment);
+	if (section_alignment < 4096 && file_alignment != section_alignment)
+		printf("FileAlignment != SectionAlignment\n");
+}
+
 /**
  * analyze() -  analyze EFI binary
  *
@@ -566,8 +587,7 @@ int analyze(int fd)
 		print_subsystem(ohw32.Subsystem);
 
 		printf("ImageBase: 0x%x\n", ohw32.ImageBase);
-		printf("SectionAlignment: 0x%lx\n",
-		       (unsigned long)ohw32.SectionAlignment);
+		check_alignment(ohw32.SectionAlignment, ohw32.FileAlignment);
 		printf("SizeOfImage: 0x%x\n", ohw32.SizeOfImage);
 		printf(".reloc.address: 0x%x\n",
 		       ohw32.BaseRelocationTable.VirtualAddress);
@@ -578,7 +598,7 @@ int analyze(int fd)
 		print_subsystem(ohw.Subsystem);
 
 		printf("ImageBase: 0x%lx\n", ohw.ImageBase);
-		printf("SectionAlignment: 0x%x\n", ohw.SectionAlignment);
+		check_alignment(ohw.SectionAlignment, ohw.FileAlignment);
 		printf("SizeOfImage: 0x%x\n", ohw.SizeOfImage);
 		printf(".reloc.address: 0x%x\n",
 		       ohw.BaseRelocationTable.VirtualAddress);
