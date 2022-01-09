@@ -602,6 +602,8 @@ int analyze(int fd)
 		printf(".reloc.address: 0x%x\n",
 		       ohw32.BaseRelocationTable.VirtualAddress);
 		printf(".reloc.size: 0x%x\n", ohw32.BaseRelocationTable.Size);
+		printf("Data-directory entries: %d\n",
+		       ohw32.NumberOfRvaAndSizes);
 	} else {
 		rds(fd, pos, &ohw);
 
@@ -613,6 +615,8 @@ int analyze(int fd)
 		printf(".reloc.address: 0x%x\n",
 		       ohw.BaseRelocationTable.VirtualAddress);
 		printf(".reloc.size: 0x%x\n", ohw.BaseRelocationTable.Size);
+		printf("Data-directory entries: %d\n",
+		       ohw.NumberOfRvaAndSizes);
 	}
 
 	printf("BaseOfCode: 0x%x\n", ohs.BaseOfCode);
@@ -651,6 +655,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	printf("%s\n", argv[1]);
 	ret = analyze(fd);
 
 	close(fd);
