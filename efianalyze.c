@@ -181,7 +181,7 @@ struct optional_header_windows_specific_fields_32 {
 	IMAGE_DATA_DIRECTORY BoundImport;
 	IMAGE_DATA_DIRECTORY IAT;
 	IMAGE_DATA_DIRECTORY DelayImportDescriptor;
-	IMAGE_DATA_DIRECTORY CLRRuntimeHeaer;
+	IMAGE_DATA_DIRECTORY CLRRuntimeHeader;
 	IMAGE_DATA_DIRECTORY Reserved;
 };
 
@@ -221,7 +221,7 @@ struct optional_header_windows_specific_fields {
 	IMAGE_DATA_DIRECTORY BoundImport;
 	IMAGE_DATA_DIRECTORY IAT;
 	IMAGE_DATA_DIRECTORY DelayImportDescriptor;
-	IMAGE_DATA_DIRECTORY CLRRuntimeHeaer;
+	IMAGE_DATA_DIRECTORY CLRRuntimeHeader;
 	IMAGE_DATA_DIRECTORY Reserved;
 };
 
@@ -270,6 +270,42 @@ void print_characteristics(uint16_t c)
 		if (c & mask)
 			printf("  * %s\n", characteristic_strings[i]);
 	}
+}
+
+/**
+ * print_table_info() - print tables
+ *
+ * @tables:	pointer to tables
+ * @num_tables:	number of tables
+ */
+static void print_table_info(IMAGE_DATA_DIRECTORY *tables, uint32_t num_tables)
+{
+	IMAGE_DATA_DIRECTORY *end = &tables[num_tables];
+	int pos = 0;
+	const char *labels[] = {
+		"Exports",
+		"Imports",
+		"Resources",
+		"Exceptions",
+		"Certificates",
+		"Base Relocations",
+		"Debug",
+		"Architecture",
+		"GlobalPtr",
+		"TLS",
+		"Load Config",
+		"Bound Import",
+		"IAT",
+		"Delay Import Descriptor",
+		"CLR Runtime Header",
+		"Reserved",
+	};
+
+	printf("Number data tables: %d\n", num_tables);
+	for(IMAGE_DATA_DIRECTORY *table = tables; table < end; ++table)
+		printf("  %-20s: 0x%08x - 0x%08x\n", labels[pos++],
+		       table->VirtualAddress,
+		       table->VirtualAddress + table->Size);
 }
 
 /**
@@ -540,7 +576,9 @@ int analyze(int fd)
 	struct optional_header_pe32_extra_field ohpx;
 	struct optional_header_windows_specific_fields ohw;
 	struct optional_header_windows_specific_fields_32 ohw32;
-	off_t pos, pos_tables;
+	IMAGE_DATA_DIRECTORY *tables;
+	uint32_t num_tables;
+	off_t pos, pos_sections, pos_tables;
 
 	efi_offset = skip_pci_rom_header(fd);
 	check_string(fd, efi_offset, 2, "MZ");
@@ -562,29 +600,20 @@ int analyze(int fd)
 
 	pos += sizeof(coff);
 	rds(fd, pos, &ohs);
-	pos_tables = pos + coff.SizeOfOptionalHeader;
+	pos_sections = pos + coff.SizeOfOptionalHeader;
 	pos += sizeof(ohs);
+	printf("BaseOfCode: 0x%x\n", ohs.BaseOfCode);
+	printf("AddressOfEntryPoint: 0x%x\n", ohs.AddressOfEntryPoint);
+
 	printf("Image type: ");
 	switch (ohs.Magic) {
 	case OPTIONAL_HEADER_MAGIC_PE32:
 		printf("PE32\n");
 		rds(fd, pos, &ohpx);
 		pos += sizeof(ohpx);
-		if (sizeof(ohs) + sizeof(ohpx) + sizeof(ohw32) !=
-		    coff.SizeOfOptionalHeader) {
-			fprintf(stderr,
-			        "Size of optional header: 0x%x != 0x%lx\n",
-			        coff.SizeOfOptionalHeader,
-			        sizeof(ohs) + sizeof(ohpx) + sizeof(ohw32));
-		}
 		break;
 	case OPTIONAL_HEADER_MAGIC_PE32_PLUS:
 		printf("PE32+\n");
-		if (sizeof(ohs) + sizeof(ohw) != coff.SizeOfOptionalHeader) {
-			fprintf(stderr,
-			        "Size of optional header: 0x%x != 0x%lx\n",
-			        coff.SizeOfOptionalHeader, sizeof(ohs) + sizeof(ohw));
-		}
 		break;
 	default:
 		fprintf(stderr, "Wrong OHS Magic 0x%04x\n", ohs.Magic);
@@ -593,6 +622,7 @@ int analyze(int fd)
 
 	if (ohs.Magic == OPTIONAL_HEADER_MAGIC_PE32) {
 		rds(fd, pos, &ohw32);
+		pos += sizeof(ohw32);
 
 		print_subsystem(ohw32.Subsystem);
 
@@ -602,10 +632,12 @@ int analyze(int fd)
 		printf(".reloc.address: 0x%x\n",
 		       ohw32.BaseRelocationTable.VirtualAddress);
 		printf(".reloc.size: 0x%x\n", ohw32.BaseRelocationTable.Size);
-		printf("Data-directory entries: %d\n",
-		       ohw32.NumberOfRvaAndSizes);
+		tables = &ohw32.ExportTable;
+		pos_tables = pos - 16 * sizeof(IMAGE_DATA_DIRECTORY);
+		num_tables = ohw32.NumberOfRvaAndSizes;
 	} else {
 		rds(fd, pos, &ohw);
+		pos += sizeof(ohw);
 
 		print_subsystem(ohw.Subsystem);
 
@@ -615,13 +647,23 @@ int analyze(int fd)
 		printf(".reloc.address: 0x%x\n",
 		       ohw.BaseRelocationTable.VirtualAddress);
 		printf(".reloc.size: 0x%x\n", ohw.BaseRelocationTable.Size);
-		printf("Data-directory entries: %d\n",
-		       ohw.NumberOfRvaAndSizes);
+		tables = &ohw.ExportTable;
+		pos_tables = pos - 16 * sizeof(IMAGE_DATA_DIRECTORY);
+		num_tables = ohw.NumberOfRvaAndSizes;
 	}
-
-	printf("BaseOfCode: 0x%x\n", ohs.BaseOfCode);
-	printf("AddressOfEntryPoint: 0x%x\n", ohs.AddressOfEntryPoint);
-	print_section_info(fd, pos_tables, &coff);
+	if (num_tables > 16) {
+		fprintf(stderr,
+			"NumberOfRvaAndSizes must be less or equal 16\n");
+		exit(EXIT_FAILURE);
+	}
+	if (pos_tables + num_tables * sizeof(IMAGE_DATA_DIRECTORY) !=
+	    pos_sections) {
+		fprintf(stderr,
+			"Mismatch NumberOfRvaAndSizes, SizeOfOptionalHeader\n");
+		exit(EXIT_FAILURE);
+	}
+	print_table_info(tables, num_tables);
+	print_section_info(fd, pos_sections, &coff);
 
 	close(fd);
 	return EXIT_SUCCESS;
