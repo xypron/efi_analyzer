@@ -349,15 +349,15 @@ static void read_structure(int fd, off_t pos, size_t len, void *buffer)
 
 	offset = lseek(fd, pos, SEEK_SET);
 	if (offset == -1) {
-		fprintf(stderr, "Failed to lseek 0x%zx\n", pos);
+		fprintf(stderr, "Failed to lseek 0x%llx\n", (long long)pos);
 		exit(EXIT_FAILURE);
 	}
 
 	count = read(fd, buffer, len);
 	if (count != len) {
 		fprintf(stderr,
-		        "Failed to read 0x%zx bytes at offset 0x%zx\n",
-		        len, pos);
+		        "Failed to read 0x%zx bytes at offset 0x%llx\n",
+		        len, (long long)pos);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -382,15 +382,15 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 	offset = lseek(fd, pos, SEEK_SET);
 	if (offset == -1) {
 		perror("");
-		fprintf(stderr, "Failed to lseek 0x%zx\n", pos);
+		fprintf(stderr, "Failed to lseek 0x%llx\n", (long long)pos);
 		exit(EXIT_FAILURE);
 	}
 
 	count = read(fd, actual, len);
 	if (count != len) {
 		fprintf(stderr,
-		        "Failed to read 0x%zx bytes at offset 0x%zx\n",
-		        len, pos);
+		        "Failed to read 0x%zx bytes at offset 0x%llx\n",
+		        len, (long long)pos);
 		exit(EXIT_FAILURE);
 	}
 
@@ -403,8 +403,8 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 				actual[i] = '?';
 		}
 		fprintf(stderr,
-		        "Expected '%s', found '%s' at offset 0x%zx\n",
-		        expected, actual, pos);
+		        "Expected '%s', found '%s' at offset 0x%llx\n",
+		        expected, actual, (long long)pos);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -641,7 +641,7 @@ int analyze(int fd)
 
 		print_subsystem(ohw.Subsystem);
 
-		printf("ImageBase: 0x%lx\n", ohw.ImageBase);
+		printf("ImageBase: 0x%llx\n", ohw.ImageBase);
 		check_alignment(ohw.SectionAlignment, ohw.FileAlignment);
 		printf("SizeOfImage: 0x%x\n", ohw.SizeOfImage);
 		printf(".reloc.address: 0x%x\n",
