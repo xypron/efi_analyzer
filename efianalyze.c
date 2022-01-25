@@ -641,7 +641,8 @@ int analyze(int fd)
 
 		print_subsystem(ohw.Subsystem);
 
-		printf("ImageBase: 0x%llx\n", ohw.ImageBase);
+		printf("ImageBase: 0x%llx\n",
+		       (unsigned long long)ohw.ImageBase);
 		check_alignment(ohw.SectionAlignment, ohw.FileAlignment);
 		printf("SizeOfImage: 0x%x\n", ohw.SizeOfImage);
 		printf(".reloc.address: 0x%x\n",
