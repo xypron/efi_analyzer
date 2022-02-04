@@ -303,7 +303,7 @@ static void print_table_info(IMAGE_DATA_DIRECTORY *tables, uint32_t num_tables)
 
 	printf("Number data tables: %d\n", num_tables);
 	for(IMAGE_DATA_DIRECTORY *table = tables; table < end; ++table)
-		printf("  %-20s: 0x%08x - 0x%08x\n", labels[pos++],
+		printf("  %-20.20s: 0x%08x - 0x%08x\n", labels[pos++],
 		       table->VirtualAddress,
 		       table->VirtualAddress + table->Size);
 }
