@@ -26,11 +26,12 @@
  */
 #define rds(A,B,C) read_structure(A, B, sizeof(*C), C)
 
-#define IMAGE_FILE_MACHINE_AMD64	0x8664
 #define IMAGE_FILE_MACHINE_I386		0x014c
-#define IMAGE_FILE_MACHINE_ARM		0x01c0
+#define IMAGE_FILE_MACHINE_AMD64	0x8664
+#define IMAGE_FILE_MACHINE_IA64		0x0200
+#define IMAGE_FILE_MACHINE_ARM		0x01c0 /* not in UEFI 2.10 */
 #define IMAGE_FILE_MACHINE_THUMB	0x01c2
-#define IMAGE_FILE_MACHINE_ARMNT	0x01c4
+#define IMAGE_FILE_MACHINE_ARMNT	0x01c4 /* not in UEFI 2.10 */
 #define IMAGE_FILE_MACHINE_EBC		0x0ebc
 #define IMAGE_FILE_MACHINE_ARM64	0xaa64
 #define IMAGE_FILE_MACHINE_RISCV32	0x5032
@@ -420,11 +421,14 @@ void print_machine_type(uint16_t machine)
 {
 	printf("Machine type: 0x%04x, ", machine);
 	switch (machine) {
+	case IMAGE_FILE_MACHINE_I386:
+		printf("Intel 386\n");
+		break;
 	case IMAGE_FILE_MACHINE_AMD64:
 		printf("x64\n");
 		break;
-	case IMAGE_FILE_MACHINE_I386:
-		printf("Intel 386\n");
+	case IMAGE_FILE_MACHINE_IA64:
+		printf("Intel Itanium\n");
 		break;
 	case IMAGE_FILE_MACHINE_ARM:
 		printf("ARM little endian\n");
