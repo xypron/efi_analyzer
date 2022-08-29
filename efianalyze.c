@@ -36,6 +36,8 @@
 #define IMAGE_FILE_MACHINE_RISCV32	0x5032
 #define IMAGE_FILE_MACHINE_RISCV64	0x5064
 #define IMAGE_FILE_MACHINE_RISCV128	0x5128
+#define IMAGE_FILE_MACHINE_LOONGARCH32	0x6232
+#define IMAGE_FILE_MACHINE_LOONGARCH64	0x6264
 
 #define IMAGE_FILE_RELOCS_STRIPPED		0x0001
 #define IMAGE_FILE_EXECUTABLE_IMAGE		0x0002
@@ -435,6 +437,12 @@ void print_machine_type(uint16_t machine)
 		break;
 	case IMAGE_FILE_MACHINE_ARM64:
 		printf("ARM64 little endian\n");
+		break;
+	case IMAGE_FILE_MACHINE_LOONGARCH32:
+		printf("LoongArch 32-bit");
+		break;
+	case IMAGE_FILE_MACHINE_LOONGARCH64:
+		printf("LoongArch 64-bit");
 		break;
 	case IMAGE_FILE_MACHINE_RISCV32:
 		printf("RISC-V 32-bit\n");
