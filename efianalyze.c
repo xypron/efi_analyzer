@@ -614,6 +614,8 @@ int analyze(int fd)
 	rds(fd, pos, &ohs);
 	pos_sections = pos + coff.SizeOfOptionalHeader;
 	pos += sizeof(ohs);
+	printf("LinkerVersion %d.%d\n",
+	       ohs.MajorLinkerVersion, ohs.MinorLinkerVersion);
 	printf("BaseOfCode: 0x%x\n", ohs.BaseOfCode);
 	printf("AddressOfEntryPoint: 0x%x\n", ohs.AddressOfEntryPoint);
 
