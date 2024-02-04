@@ -437,16 +437,16 @@ void print_machine_type(uint16_t machine)
 		printf("ARM or Thumb (\"interworking\")\n");
 		break;
 	case IMAGE_FILE_MACHINE_ARMNT:
-		printf("ARM Thumb-2 little endian \n");
+		printf("ARM Thumb-2 little endian\n");
 		break;
 	case IMAGE_FILE_MACHINE_ARM64:
 		printf("ARM64 little endian\n");
 		break;
 	case IMAGE_FILE_MACHINE_LOONGARCH32:
-		printf("LoongArch 32-bit");
+		printf("LoongArch 32-bit\n");
 		break;
 	case IMAGE_FILE_MACHINE_LOONGARCH64:
-		printf("LoongArch 64-bit");
+		printf("LoongArch 64-bit\n");
 		break;
 	case IMAGE_FILE_MACHINE_RISCV32:
 		printf("RISC-V 32-bit\n");
