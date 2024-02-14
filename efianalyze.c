@@ -111,6 +111,25 @@ char *section_characteristics[] = {
 	"The section can be written to.",
 };
 
+char *dll_characteristics[] = {
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Image can handle a high entropy 64-bit virtual address space.",
+	"DLL can be relocated at load time.",
+	"Code Integrity checks are enforced.",
+	"Image is NX compatible.",
+	"Isolation aware, but do not isolate the image.",
+	"Does not use structured exception (SE) handling.",
+	"Do not bind the image.",
+	"Image must execute in an AppContainer.",
+	"A WDM driver.",
+	"Image supports Control Flow Guard.",
+	"Terminal Server aware.",
+};
+
 #define IMAGE_SUBSYSTEM_EFI_APPLICATION		10
 #define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
 #define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER	12
@@ -572,6 +591,22 @@ static void check_alignment(uint32_t section_alignment, uint32_t file_alignment)
 }
 
 /**
+ * print_dll_characteristics - print DLL characteristics
+ *
+ * @c:	DLL characteristics
+ */
+static void print_dll_characteristics(unsigned int c)
+{
+	unsigned int i, mask = 1;
+
+	printf("DLL Characteristics: 0x%04x\n", c);
+	for (i = 0; i < 16; ++i, mask <<= 1) {
+		if (c & mask)
+			printf("  * %s\n", dll_characteristics[i]);
+	}
+}
+
+/**
  * analyze() -  analyze EFI binary
  *
  * @fd:		file descriptor
@@ -649,6 +684,7 @@ int analyze(int fd)
 		tables = &ohw32.ExportTable;
 		pos_tables = pos - 16 * sizeof(IMAGE_DATA_DIRECTORY);
 		num_tables = ohw32.NumberOfRvaAndSizes;
+		print_dll_characteristics(ohw32.DllCharacteristics);
 	} else {
 		rds(fd, pos, &ohw);
 		pos += sizeof(ohw);
@@ -665,6 +701,7 @@ int analyze(int fd)
 		tables = &ohw.ExportTable;
 		pos_tables = pos - 16 * sizeof(IMAGE_DATA_DIRECTORY);
 		num_tables = ohw.NumberOfRvaAndSizes;
+		print_dll_characteristics(ohw.DllCharacteristics);
 	}
 	if (num_tables > 16) {
 		fprintf(stderr,
