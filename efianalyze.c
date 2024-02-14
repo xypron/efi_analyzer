@@ -672,9 +672,8 @@ int analyze(int fd)
 	if (ohs.Magic == OPTIONAL_HEADER_MAGIC_PE32) {
 		rds(fd, pos, &ohw32);
 		pos += sizeof(ohw32);
-
 		print_subsystem(ohw32.Subsystem);
-
+		print_dll_characteristics(ohw32.DllCharacteristics);
 		printf("ImageBase: 0x%x\n", ohw32.ImageBase);
 		check_alignment(ohw32.SectionAlignment, ohw32.FileAlignment);
 		printf("SizeOfImage: 0x%x\n", ohw32.SizeOfImage);
@@ -684,13 +683,11 @@ int analyze(int fd)
 		tables = &ohw32.ExportTable;
 		pos_tables = pos - 16 * sizeof(IMAGE_DATA_DIRECTORY);
 		num_tables = ohw32.NumberOfRvaAndSizes;
-		print_dll_characteristics(ohw32.DllCharacteristics);
 	} else {
 		rds(fd, pos, &ohw);
 		pos += sizeof(ohw);
-
 		print_subsystem(ohw.Subsystem);
-
+		print_dll_characteristics(ohw.DllCharacteristics);
 		printf("ImageBase: 0x%llx\n",
 		       (unsigned long long)ohw.ImageBase);
 		check_alignment(ohw.SectionAlignment, ohw.FileAlignment);
@@ -701,7 +698,6 @@ int analyze(int fd)
 		tables = &ohw.ExportTable;
 		pos_tables = pos - 16 * sizeof(IMAGE_DATA_DIRECTORY);
 		num_tables = ohw.NumberOfRvaAndSizes;
-		print_dll_characteristics(ohw.DllCharacteristics);
 	}
 	if (num_tables > 16) {
 		fprintf(stderr,
