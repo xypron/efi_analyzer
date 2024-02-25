@@ -57,7 +57,7 @@
 #define IMAGE_FILE_UP_SYSTEM_ONLY		0x4000
 #define IMAGE_FILE_BYTES_REVERSED_HI		0x8000
 
-char *characteristic_strings[] = {
+static const char * const characteristic_strings[] = {
 	"Relocation information was stripped from the file.",
 	"The file is executable.",
 	"COFF line numbers were stripped from the file.",
@@ -76,7 +76,7 @@ char *characteristic_strings[] = {
 	"Big endian: MSB precedes LSB in memory.",
 };
 
-char *section_characteristics[] = {
+static const char * const section_characteristics[] = {
 	"Reserved.",
 	"Reserved.",
 	"Reserved.",
@@ -111,7 +111,7 @@ char *section_characteristics[] = {
 	"The section can be written to.",
 };
 
-char *dll_characteristics[] = {
+static const char * const dll_characteristics[] = {
 	"Reserved.",
 	"Reserved.",
 	"Reserved.",
