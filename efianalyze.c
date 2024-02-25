@@ -376,7 +376,7 @@ static void read_structure(int fd, off_t pos, size_t len, void *buffer)
 	}
 
 	count = read(fd, buffer, len);
-	if (count != len) {
+	if ((size_t)count != len) {
 		fprintf(stderr,
 		        "Failed to read 0x%zx bytes at offset 0x%llx\n",
 		        len, (long long)pos);
@@ -399,7 +399,7 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 	off_t offset;
 	ssize_t count;
 
-	char actual[BUFLEN];
+	unsigned char actual[BUFLEN];
 
 	offset = lseek(fd, pos, SEEK_SET);
 	if (offset == -1) {
@@ -409,7 +409,7 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 	}
 
 	count = read(fd, actual, len);
-	if (count != len) {
+	if ((size_t)count != len) {
 		fprintf(stderr,
 		        "Failed to read 0x%zx bytes at offset 0x%llx\n",
 		        len, (long long)pos);
@@ -420,7 +420,7 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
 		size_t i;
 
 		actual[count] = 0;
-		for (i = 0; i < count; ++i) {
+		for (i = 0; i < len; ++i) {
 			if (actual[i] < 0x20 || actual[i] >= 0x80)
 				actual[i] = '?';
 		}
@@ -614,8 +614,6 @@ static void print_dll_characteristics(unsigned int c)
  */
 int analyze(int fd)
 {
-	int ret;
-	int i;
 	uint32_t pe_offset;
 	uint32_t efi_offset;
 	struct coff_header coff;
@@ -704,7 +702,7 @@ int analyze(int fd)
 			"NumberOfRvaAndSizes must be less or equal 16\n");
 		exit(EXIT_FAILURE);
 	}
-	if (pos_tables + num_tables * sizeof(IMAGE_DATA_DIRECTORY) !=
+	if ((off_t)(pos_tables + num_tables * sizeof(IMAGE_DATA_DIRECTORY)) !=
 	    pos_sections) {
 		fprintf(stderr,
 			"Mismatch NumberOfRvaAndSizes, SizeOfOptionalHeader\n");
