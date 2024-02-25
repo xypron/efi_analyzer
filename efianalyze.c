@@ -283,7 +283,7 @@ static void usage(void)
 /**
  * print_characteristics - print characteristics
  */
-void print_characteristics(uint16_t c)
+static void print_characteristics(uint16_t c)
 {
 	unsigned int i, mask = 1;
 
@@ -436,7 +436,7 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
  *
  * @machine:	machine type
  */
-void print_machine_type(uint16_t machine)
+static void print_machine_type(uint16_t machine)
 {
 	printf("Machine type: 0x%04x, ", machine);
 	switch (machine) {
@@ -491,7 +491,7 @@ void print_machine_type(uint16_t machine)
  * @pos:	start of section information
  * @coff:	COFF header
  */
-void print_section_info(int fd, off_t pos, struct coff_header *coff)
+static void print_section_info(int fd, off_t pos, struct coff_header *coff)
 {
 	int i;
 	struct section_header sh;
@@ -525,7 +525,7 @@ void print_section_info(int fd, off_t pos, struct coff_header *coff)
  * @fd:		file descriptor
  * Return:	offset to EFI image
  */
-uint32_t skip_pci_rom_header(int fd)
+static uint32_t skip_pci_rom_header(int fd)
 {
 	struct pci_expansion_rom_header hd;
 
@@ -548,7 +548,7 @@ uint32_t skip_pci_rom_header(int fd)
  *
  * @subsystem:	subsystem
  */
-void print_subsystem(uint16_t subsystem)
+static void print_subsystem(uint16_t subsystem)
 {
 	printf("Subsystem: ");
 	switch(subsystem) {
@@ -612,7 +612,7 @@ static void print_dll_characteristics(unsigned int c)
  * @fd:		file descriptor
  * Return:	0 for success
  */
-int analyze(int fd)
+static int analyze(int fd)
 {
 	uint32_t pe_offset;
 	uint32_t efi_offset;
