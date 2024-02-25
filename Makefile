@@ -2,8 +2,20 @@
 
 prefix?=/usr/local
 
+# Reproducable build
+CFLAGS = -O2 -ffile-prefix-map=$(shell pwd)=.
+
+# Fortification
+CFLAGS += \
+	-Wall -Wextra -Werror \
+	-fno-omit-frame-pointer \
+	-mno-omit-leaf-frame-pointer \
+	-fstack-protector-strong \
+	-fstack-clash-protection \
+	-fcf-protection
+
 all:
-	gcc efianalyze.c -o efianalyze
+	gcc efianalyze.c $(CFLAGS) -o efianalyze
 
 check:
 	./efianalyze -h
