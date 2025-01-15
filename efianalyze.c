@@ -158,7 +158,7 @@ struct optional_header_standard_fields {
 	uint8_t MajorLinkerVersion;
 	uint8_t MinorLinkerVersion;
 	uint32_t SizeOfCode;
-	uint32_t SizeOfInitilizedData;
+	uint32_t SizeOfInitializedData;
 	uint32_t SizeOfUninitializedData;
 	uint32_t AddressOfEntryPoint;
 	uint32_t BaseOfCode;
@@ -650,6 +650,9 @@ static int analyze(int fd)
 	printf("LinkerVersion %d.%d\n",
 	       ohs.MajorLinkerVersion, ohs.MinorLinkerVersion);
 	printf("BaseOfCode: 0x%x\n", ohs.BaseOfCode);
+	printf("SizeOfCode: 0x%x\n", ohs.SizeOfCode);
+	printf("SizeOfInitializedData: 0x%x\n", ohs.SizeOfInitializedData);
+	printf("SizeOfSizeOfUninitializedData: 0x%x\n", ohs.SizeOfUninitializedData);
 	printf("AddressOfEntryPoint: 0x%x\n", ohs.AddressOfEntryPoint);
 
 	printf("Image type: ");
