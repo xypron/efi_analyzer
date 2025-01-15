@@ -661,16 +661,6 @@ static int analyze(int fd)
 		printf("PE32\n");
 		rds(fd, pos, &ohpx);
 		pos += sizeof(ohpx);
-		break;
-	case OPTIONAL_HEADER_MAGIC_PE32_PLUS:
-		printf("PE32+\n");
-		break;
-	default:
-		fprintf(stderr, "Wrong OHS Magic 0x%04x\n", ohs.Magic);
-		exit(EXIT_FAILURE);
-	}
-
-	if (ohs.Magic == OPTIONAL_HEADER_MAGIC_PE32) {
 		rds(fd, pos, &ohw32);
 		pos += sizeof(ohw32);
 		print_subsystem(ohw32.Subsystem);
@@ -684,7 +674,9 @@ static int analyze(int fd)
 		tables = &ohw32.ExportTable;
 		pos_tables = pos - 16 * sizeof(IMAGE_DATA_DIRECTORY);
 		num_tables = ohw32.NumberOfRvaAndSizes;
-	} else {
+		break;
+	case OPTIONAL_HEADER_MAGIC_PE32_PLUS:
+		printf("PE32+\n");
 		rds(fd, pos, &ohw);
 		pos += sizeof(ohw);
 		print_subsystem(ohw.Subsystem);
@@ -699,6 +691,10 @@ static int analyze(int fd)
 		tables = &ohw.ExportTable;
 		pos_tables = pos - 16 * sizeof(IMAGE_DATA_DIRECTORY);
 		num_tables = ohw.NumberOfRvaAndSizes;
+		break;
+	default:
+		fprintf(stderr, "Wrong OHS Magic 0x%04x\n", ohs.Magic);
+		exit(EXIT_FAILURE);
 	}
 	if (num_tables > 16) {
 		fprintf(stderr,
