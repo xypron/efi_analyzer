@@ -10,8 +10,7 @@ CFLAGS += \
 	-Wall -Wextra -Werror \
 	-fno-omit-frame-pointer \
 	-fstack-protector-strong \
-	-fstack-clash-protection \
-	-fcf-protection
+	-fstack-clash-protection
 
 all:
 	gcc efianalyze.c $(CFLAGS) -o efianalyze
