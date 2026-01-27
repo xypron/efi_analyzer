@@ -5,6 +5,7 @@
  * Tool to analyze UEFI binaries
  */
 #include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -495,6 +496,8 @@ static void print_section_info(int fd, off_t pos, struct coff_header *coff)
 {
 	int i;
 	struct section_header sh;
+	off_t section_table_start = pos;
+	off_t first_section_addr = UINT_MAX;
 
 	printf("Number of sections: %d\n", coff->NumberOfSections);
 	for (i = 0; i < coff->NumberOfSections; ++i) {
@@ -516,7 +519,13 @@ static void print_section_info(int fd, off_t pos, struct coff_header *coff)
 			printf("  %d line numbers\n",
 			       sh.NumberOfLinenumbers);
 		print_section_characteristics(sh.Characteristics);
+		if (sh.PointerToRawData < first_section_addr)
+			first_section_addr = sh.PointerToRawData;
 	}
+	if (first_section_addr != UINT_MAX)
+		printf("Maximum number of section table entries = %llu\n",
+		       (long long unsigned int)
+		       (first_section_addr - section_table_start) / sizeof(sh));
 }
 
 /**
