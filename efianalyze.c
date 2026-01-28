@@ -519,7 +519,8 @@ static void print_section_info(int fd, off_t pos, struct coff_header *coff)
 			printf("  %d line numbers\n",
 			       sh.NumberOfLinenumbers);
 		print_section_characteristics(sh.Characteristics);
-		if (sh.PointerToRawData < first_section_addr)
+		if (sh.SizeOfRawData &&
+		    sh.PointerToRawData < first_section_addr)
 			first_section_addr = sh.PointerToRawData;
 	}
 	if (first_section_addr != UINT_MAX)
