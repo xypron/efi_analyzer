@@ -14,6 +14,7 @@
 #include <QCloseEvent>
 #include <QScreen>
 #include <QGuiApplication>
+#include <QClipboard>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_propertyColumnWidth(-1)
@@ -103,20 +104,58 @@ void MainWindow::showContextMenu(const QPoint &pos)
     QStandardItem *item = model->itemFromIndex(index);
     if (!item) return;
 
-    // Check if it's a section node or a valid data directory
-    bool isSection = item->data(Qt::UserRole + 1).toBool();
-    bool isDataDirectory = item->data(Qt::UserRole + 5).toBool();
-    uint32_t rawSize = item->data(Qt::UserRole + 3).toUInt();
-    uint32_t rawOffset = item->data(Qt::UserRole + 2).toUInt();
+    QMenu contextMenu(this);
+    bool menuPopulated = false;
 
-    if ((isSection && rawSize > 0) || (isDataDirectory && rawSize > 0 && rawOffset > 0)) {
-        QMenu contextMenu(this);
-        QString actionText = isSection ? tr("Save section to file...") : tr("Save directory to file...");
-        QAction *downloadAct = new QAction(QIcon::fromTheme("document-save"), actionText, this);
-        downloadAct->setData(index); // Store the index so we know what to save
-        connect(downloadAct, &QAction::triggered, this, &MainWindow::downloadSection);
-        contextMenu.addAction(downloadAct);
+    // 1. Check if the user specifically clicked the Value column (column 1)
+    if (index.column() == 1) {
+        QString cellText = item->text().trimmed();
+        if (!cellText.isEmpty()) {
+            QAction *copyAct = new QAction(QIcon::fromTheme("edit-copy"), tr("Copy value"), this);
+            copyAct->setData(cellText); // Store the string to copy
+            connect(copyAct, &QAction::triggered, this, &MainWindow::copyValue);
+            contextMenu.addAction(copyAct);
+            menuPopulated = true;
+        }
+    }
+
+    // 2. Download actions (these metadata properties are stored on column 0 items)
+    QModelIndex propIndex = index.siblingAtColumn(0);
+    QStandardItem *propItem = model->itemFromIndex(propIndex);
+
+    if (propItem) {
+        bool isSection = propItem->data(Qt::UserRole + 1).toBool();
+        bool isDataDirectory = propItem->data(Qt::UserRole + 5).toBool();
+        uint32_t rawSize = propItem->data(Qt::UserRole + 3).toUInt();
+        uint32_t rawOffset = propItem->data(Qt::UserRole + 2).toUInt();
+
+        if ((isSection && rawSize > 0) || (isDataDirectory && rawSize > 0 && rawOffset > 0)) {
+            if (menuPopulated) {
+                contextMenu.addSeparator();
+            }
+            QString actionText = isSection ? tr("Save section to file...") : tr("Save directory to file...");
+            QAction *downloadAct = new QAction(QIcon::fromTheme("document-save"), actionText, this);
+            downloadAct->setData(propIndex); // Store the column 0 index so download logic works natively
+            connect(downloadAct, &QAction::triggered, this, &MainWindow::downloadSection);
+            contextMenu.addAction(downloadAct);
+            menuPopulated = true;
+        }
+    }
+
+    if (menuPopulated) {
         contextMenu.exec(treeView->viewport()->mapToGlobal(pos));
+    }
+}
+
+void MainWindow::copyValue()
+{
+    QAction *act = qobject_cast<QAction*>(sender());
+    if (!act) return;
+
+    QString textToCopy = act->data().toString();
+    if (!textToCopy.isEmpty()) {
+        QGuiApplication::clipboard()->setText(textToCopy);
+        statusBar()->showMessage(tr("Copied: %1").arg(textToCopy), 3000);
     }
 }
 

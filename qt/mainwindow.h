@@ -23,6 +23,7 @@ private slots:
     void openFile();
     void showContextMenu(const QPoint &pos);
     void downloadSection();
+    void copyValue();
 
 private:
     void setupUi();
