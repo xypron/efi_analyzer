@@ -1,0 +1,12 @@
+# Build files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+*_autogen/
+
+# Executables
+efianalyzer-qt
+
+# User configs
+CMakeUserPresets.json
