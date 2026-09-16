@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName("EFI Analyzer Qt");
     QApplication::setApplicationVersion("1.0");
 
-    QApplication::setDesktopFileName("efianalyzer-qt.desktop");
+    QApplication::setDesktopFileName("efianalyzer-qt");
     a.setWindowIcon(QIcon(":/efianalyzer.png"));
     QCommandLineParser parser;
     parser.setApplicationDescription("Analyze UEFI binaries");

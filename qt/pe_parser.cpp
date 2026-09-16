@@ -453,6 +453,7 @@ bool PeParser::parseFile(const QString &filePath, QStandardItemModel *model, QSt
         return false;
     }
 
+    QList<QStandardItem*> directoryItems;
     if (num_tables > 0) {
         QStandardItem *tablesNode = new QStandardItem(QString("Data Directories (%1)").arg(num_tables));
         tablesNode->setEditable(false);
@@ -470,7 +471,17 @@ bool PeParser::parseFile(const QString &filePath, QStandardItemModel *model, QSt
             QString v = QString("0x%1 - 0x%2")
                         .arg(tableList[i].VirtualAddress, 8, 16, QChar('0'))
                         .arg(tableList[i].VirtualAddress + tableList[i].Size, 8, 16, QChar('0'));
-            tablesNode->appendRow(QList<QStandardItem*>() << new QStandardItem(tableNames[i]) << new QStandardItem(v));
+            QStandardItem *dirItem = new QStandardItem(tableNames[i]);
+            dirItem->setEditable(false);
+
+            // Mark as potential directory, but missing raw offset for now
+            dirItem->setData(true, Qt::UserRole + 5); // isDataDirectory
+            dirItem->setData(0, Qt::UserRole + 2); // default raw offset 0
+            dirItem->setData(tableList[i].Size, Qt::UserRole + 3); // size
+            dirItem->setData(QString(tableNames[i]), Qt::UserRole + 4); // name
+
+            directoryItems.append(dirItem);
+            tablesNode->appendRow(QList<QStandardItem*>() << dirItem << new QStandardItem(v));
         }
     }
 
@@ -530,6 +541,35 @@ bool PeParser::parseFile(const QString &filePath, QStandardItemModel *model, QSt
         secItem->appendRow(QList<QStandardItem*>() << charNode << charValNode);
 
         sectionsNode->appendRow(QList<QStandardItem*>() << secItem << secValItem);
+
+        // Resolve RVAs for data directories
+        if (num_tables > 0) {
+            for (uint32_t j = 0; j < num_tables && j < 16; ++j) {
+                uint32_t dirRva = tableList[j].VirtualAddress;
+                uint32_t dirSize = tableList[j].Size;
+
+                // Special Case: The Certificate Table (Index 4) VirtualAddress is ACTUALLY a File Offset, not an RVA.
+                if (j == 4) {
+                    directoryItems[j]->setData(dirRva, Qt::UserRole + 2); // It's already the raw physical file pointer
+                    directoryItems[j]->setData(dirSize, Qt::UserRole + 3);
+                    continue;
+                }
+
+                // If directory is within this section's virtual memory
+                if (dirRva >= sh.VirtualAddress && dirRva < sh.VirtualAddress + sh.VirtualSize) {
+                    uint32_t offset = dirRva - sh.VirtualAddress + sh.PointerToRawData;
+
+                    // Prevent reading past the actual raw data available on disk
+                    if (offset < sh.PointerToRawData + sh.SizeOfRawData) {
+                        uint32_t availableRaw = (sh.PointerToRawData + sh.SizeOfRawData) - offset;
+                        uint32_t actualSize = (dirSize > availableRaw) ? availableRaw : dirSize;
+
+                        directoryItems[j]->setData(offset, Qt::UserRole + 2); // Correct file offset
+                        directoryItems[j]->setData(actualSize, Qt::UserRole + 3); // Correct max readable size
+                    }
+                }
+            }
+        }
     }
 
     file.close();

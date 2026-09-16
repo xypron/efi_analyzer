@@ -103,10 +103,16 @@ void MainWindow::showContextMenu(const QPoint &pos)
     QStandardItem *item = model->itemFromIndex(index);
     if (!item) return;
 
-    // Check if it's a section node (we stored true in UserRole+1)
-    if (item->data(Qt::UserRole + 1).toBool()) {
+    // Check if it's a section node or a valid data directory
+    bool isSection = item->data(Qt::UserRole + 1).toBool();
+    bool isDataDirectory = item->data(Qt::UserRole + 5).toBool();
+    uint32_t rawSize = item->data(Qt::UserRole + 3).toUInt();
+    uint32_t rawOffset = item->data(Qt::UserRole + 2).toUInt();
+
+    if ((isSection && rawSize > 0) || (isDataDirectory && rawSize > 0 && rawOffset > 0)) {
         QMenu contextMenu(this);
-        QAction *downloadAct = new QAction(QIcon::fromTheme("document-save"), tr("Save section to file..."), this);
+        QString actionText = isSection ? tr("Save section to file...") : tr("Save directory to file...");
+        QAction *downloadAct = new QAction(QIcon::fromTheme("document-save"), actionText, this);
         downloadAct->setData(index); // Store the index so we know what to save
         connect(downloadAct, &QAction::triggered, this, &MainWindow::downloadSection);
         contextMenu.addAction(downloadAct);
@@ -136,7 +142,10 @@ void MainWindow::downloadSection()
 
     QString defaultName = secName;
     defaultName.replace(QRegularExpression("[^a-zA-Z0-9_.-]"), "_");
-    QString savePath = QFileDialog::getSaveFileName(this, tr("Save Section"), defaultName, tr("All Files (*)"));
+    bool isDataDir = item->data(Qt::UserRole + 5).toBool();
+    QString dialogTitle = isDataDir ? tr("Save Directory") : tr("Save Section");
+
+    QString savePath = QFileDialog::getSaveFileName(this, dialogTitle, defaultName, tr("All Files (*)"));
     if (savePath.isEmpty()) return;
 
     QFile inFile(currentFilePath);
@@ -164,7 +173,7 @@ void MainWindow::downloadSection()
 
     outFile.write(data);
     if (outFile.commit()) {
-        statusBar()->showMessage(tr("Section saved to: %1").arg(savePath));
+        statusBar()->showMessage((isDataDir ? tr("Directory saved to: %1") : tr("Section saved to: %1")).arg(savePath));
     } else {
         QMessageBox::warning(this, tr("Error"), tr("Failed to save file."));
     }
