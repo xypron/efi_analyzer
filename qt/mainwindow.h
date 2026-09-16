@@ -1,3 +1,5 @@
+// SPDX-License-Identifier:     BSD-2-Clause
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 

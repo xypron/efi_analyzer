@@ -1,3 +1,5 @@
+// SPDX-License-Identifier:     BSD-2-Clause
+
 #ifndef PE_PARSER_H
 #define PE_PARSER_H
 

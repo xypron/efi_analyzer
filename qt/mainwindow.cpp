@@ -1,3 +1,5 @@
+// SPDX-License-Identifier:     BSD-2-Clause
+
 #include "mainwindow.h"
 #include "pe_parser.h"
 
