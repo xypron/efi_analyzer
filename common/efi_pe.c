@@ -254,3 +254,50 @@ char *efi_pe_fdt_compatible_fd(int fd, long long offset, size_t size)
 
 	return result;
 }
+
+/*
+ * efi_zboot_header_read() and efi_zboot_compression_string() use
+ * pread() to access the file at an explicit, absolute offset (0).
+ * pread() never reads or modifies the file descriptor's current
+ * read/write position, so calling this function has no effect on -
+ * and is unaffected by - any lseek()-based or position-tracking
+ * sequential reads (e.g. read_structure()/rds() in the callers of
+ * this function) that a caller performs before or after this call.
+ */
+int efi_zboot_header_read(int fd, struct efi_zboot_header *hdr)
+{
+	ssize_t n;
+
+	n = pread(fd, hdr, sizeof(*hdr), 0);
+	if (n != (ssize_t)sizeof(*hdr))
+		return 0;
+
+	if (memcmp(hdr->msdos_magic, "MZ", 2) != 0)
+		return 0;
+	if (memcmp(hdr->zimg_magic, "zimg", 4) != 0)
+		return 0;
+
+	return 1;
+}
+
+void efi_zboot_compression_string(const struct efi_zboot_header *hdr,
+				   char out[33])
+{
+	size_t len, i;
+
+	len = strnlen(hdr->compression_type, sizeof(hdr->compression_type));
+	memcpy(out, hdr->compression_type, len);
+	out[len] = '\0';
+
+	for (i = 0; i < len; ++i) {
+		unsigned char c = (unsigned char)out[i];
+
+		if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') ||
+		      (c >= 'A' && c <= 'Z') || c == '.' || c == '_' ||
+		      c == '-'))
+			out[i] = '_';
+	}
+
+	if (len == 0)
+		memcpy(out, "bin", 4);
+}

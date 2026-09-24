@@ -3,6 +3,7 @@
 #include "pe_parser.h"
 
 #include <cstdlib>
+#include <cstring>
 
 #include <QFile>
 #include <QDataStream>
@@ -80,6 +81,51 @@ bool PeParser::parseFile(const QString &filePath, QStandardItemModel *model, QSt
     fileValNode->setEditable(false);
     fileNode->appendRow(QList<QStandardItem*>() << new QStandardItem("Name") << new QStandardItem(QFileInfo(filePath).fileName()));
     rootItem->appendRow(QList<QStandardItem*>() << fileNode << fileValNode);
+
+    // Detect a CONFIG_EFI_ZBOOT=y compressed Linux kernel image. Such
+    // an image is still an ordinary PE/COFF EFI application (the real
+    // PE header is found via the normal offset 0x3c slot below), so
+    // this check is purely additive: it does not change how the rest
+    // of this function locates the PE header, it just also surfaces
+    // the payload location for the "Save payload to file..." context
+    // menu.
+    efi_zboot_header zboot_hdr;
+    if (rds(file, 0, zboot_hdr) &&
+        memcmp(zboot_hdr.msdos_magic, "MZ", 2) == 0 &&
+        memcmp(zboot_hdr.zimg_magic, "zimg", 4) == 0) {
+        if ((qint64)zboot_hdr.payload_offset + (qint64)zboot_hdr.payload_size >
+            file.size()) {
+            errorMsg = QString("EFI_ZBOOT payload (offset 0x%1, size 0x%2) "
+                                "exceeds file size 0x%3")
+                           .arg(zboot_hdr.payload_offset, 0, 16)
+                           .arg(zboot_hdr.payload_size, 0, 16)
+                           .arg(file.size(), 0, 16);
+            return false;
+        }
+
+        char compression[33];
+        efi_zboot_compression_string(&zboot_hdr, compression);
+        QString compressionStr = QString::fromLatin1(compression);
+
+        QStandardItem *zbootNode = new QStandardItem("Linux EFI zboot payload");
+        zbootNode->setEditable(false);
+        QStandardItem *zbootValNode = new QStandardItem();
+        zbootValNode->setEditable(false);
+
+        // UserRole+6 flags this row as the zboot payload specifically,
+        // so the context menu can offer "Save payload to file..."
+        // instead of the generic section/directory wording.
+        zbootNode->setData(true, Qt::UserRole + 6); // isZbootPayload
+        zbootNode->setData(zboot_hdr.payload_offset, Qt::UserRole + 2);
+        zbootNode->setData(zboot_hdr.payload_size, Qt::UserRole + 3);
+        zbootNode->setData(QString("payload.%1").arg(compressionStr), Qt::UserRole + 4);
+
+        zbootNode->appendRow(QList<QStandardItem*>() << new QStandardItem("Start") << new QStandardItem(QString("0x%1").arg(zboot_hdr.payload_offset, 0, 16)));
+        zbootNode->appendRow(QList<QStandardItem*>() << new QStandardItem("Size") << new QStandardItem(QString("0x%1").arg(zboot_hdr.payload_size, 0, 16)));
+        zbootNode->appendRow(QList<QStandardItem*>() << new QStandardItem("Compression") << new QStandardItem(compressionStr));
+
+        rootItem->appendRow(QList<QStandardItem*>() << zbootNode << zbootValNode);
+    }
 
     uint32_t pe_offset = 0;
 

@@ -24,6 +24,7 @@ enum {
 	PE_COL_RAW_OFFSET,	/* uint:    file offset of raw data */
 	PE_COL_RAW_SIZE,	/* uint:    size of raw data */
 	PE_COL_NAME,		/* string:  section/directory name */
+	PE_COL_IS_ZBOOT_PAYLOAD,/* boolean: row is the EFI zboot payload */
 	PE_N_COLS
 };
 

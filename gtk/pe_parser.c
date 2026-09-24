@@ -175,6 +175,64 @@ gboolean pe_parser_parse_file(const char *path, GtkTreeStore *store,
 		g_free(base);
 	}
 
+	/*
+	 * Detect a CONFIG_EFI_ZBOOT=y compressed Linux kernel image.
+	 * Such an image is still an ordinary PE/COFF EFI application
+	 * (the real PE header is found via the normal offset 0x3c
+	 * slot below), so this check is purely additive: it does not
+	 * change how the rest of this function locates the PE
+	 * header, it just also surfaces the payload location for the
+	 * "Save payload to file..." context menu.
+	 */
+	{
+		struct efi_zboot_header zboot_hdr;
+
+		if (efi_zboot_header_read(fd, &zboot_hdr)) {
+			GtkTreeIter zboot_iter;
+			char compression[33];
+
+			if ((off_t)zboot_hdr.payload_offset +
+				    (off_t)zboot_hdr.payload_size >
+			    file_size) {
+				g_set_error(error, PE_PARSER_ERROR, 0,
+					    "EFI_ZBOOT payload (offset 0x%x, "
+					    "size 0x%x) exceeds file size "
+					    "0x%llx",
+					    zboot_hdr.payload_offset,
+					    zboot_hdr.payload_size,
+					    (unsigned long long)file_size);
+				close(fd);
+				return FALSE;
+			}
+
+			efi_zboot_compression_string(&zboot_hdr, compression);
+
+			zboot_iter = add_row(store, NULL,
+					      "Linux EFI zboot payload", NULL);
+			{
+				char *name = g_strdup_printf("payload.%s",
+							      compression);
+
+				gtk_tree_store_set(
+					store, &zboot_iter,
+					PE_COL_IS_ZBOOT_PAYLOAD, TRUE,
+					PE_COL_RAW_OFFSET,
+					zboot_hdr.payload_offset,
+					PE_COL_RAW_SIZE,
+					zboot_hdr.payload_size,
+					PE_COL_NAME, name, -1);
+				g_free(name);
+			}
+
+			add_row_printf(store, &zboot_iter, "Start", "0x%x",
+				       zboot_hdr.payload_offset);
+			add_row_printf(store, &zboot_iter, "Size", "0x%x",
+				       zboot_hdr.payload_size);
+			add_row(store, &zboot_iter, "Compression",
+				compression);
+		}
+	}
+
 	{
 		struct pci_expansion_rom_header rom_hd;
 

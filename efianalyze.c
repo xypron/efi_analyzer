@@ -347,6 +347,56 @@ static void print_dll_characteristics(unsigned int c)
 }
 
 /**
+ * print_zboot_info() - detect and print EFI zboot image information
+ *
+ * If the file open on @fd starts with an EFI zboot header, prints
+ * that it is a Linux EFI zboot payload along with the payload's
+ * start, size, and compression type. The program is aborted with
+ * an error message if the header is present
+ * but the payload's end (payload_offset + payload_size) does not
+ * fit within the file, since that indicates a truncated or
+ * corrupted image rather than simply "not a zboot image".
+ *
+ * This uses pread() internally (via efi_zboot_header_read()), which
+ * reads at an explicit absolute offset and does not touch the file
+ * descriptor's current lseek() position, so it has no effect on the
+ * pos-tracked reads (rds()/read_structure()) that the rest of
+ * analyze() performs before or after this call.
+ *
+ * @fd:		file descriptor
+ */
+static void print_zboot_info(int fd)
+{
+	struct efi_zboot_header hdr;
+	struct stat st;
+	off_t file_size;
+	uint64_t end;
+	char compression[33];
+
+	if (!efi_zboot_header_read(fd, &hdr))
+		return;
+
+	file_size = fstat(fd, &st) == 0 ? st.st_size : 0;
+	end = (uint64_t)hdr.payload_offset + (uint64_t)hdr.payload_size;
+
+	if (end > (uint64_t)file_size) {
+		fprintf(stderr,
+			"EFI_ZBOOT payload (offset 0x%x, size 0x%x) exceeds "
+			"file size 0x%llx\n",
+			hdr.payload_offset, hdr.payload_size,
+			(unsigned long long)file_size);
+		exit(EXIT_FAILURE);
+	}
+
+	efi_zboot_compression_string(&hdr, compression);
+
+	printf("Linux EFI zboot payload\n");
+	printf("  Start: 0x%x\n", hdr.payload_offset);
+	printf("  Size: 0x%x\n", hdr.payload_size);
+	printf("  Compression: %s\n", compression);
+}
+
+/**
  * analyze() -  analyze EFI binary
  *
  * @fd:		file descriptor
@@ -364,6 +414,8 @@ static int analyze(int fd)
 	IMAGE_DATA_DIRECTORY *tables;
 	uint32_t num_tables;
 	off_t pos, pos_sections, pos_tables;
+
+	print_zboot_info(fd);
 
 	efi_offset = skip_pci_rom_header(fd);
 	check_string(fd, efi_offset, 2, "MZ");
@@ -482,7 +534,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	printf("%s\n", argv[1]);
+	printf("Filename: %s\n", argv[1]);
 	ret = analyze(fd);
 
 	close(fd);

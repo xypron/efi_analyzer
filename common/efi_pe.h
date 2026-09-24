@@ -183,6 +183,30 @@ struct section_header {
 	uint32_t Characteristics;
 };
 
+/*
+ * Header of a CONFIG_EFI_ZBOOT=y compressed Linux kernel image
+ * ("EFI zboot"). This header overlays the MS-DOS stub of an
+ * otherwise ordinary PE/COFF EFI application; the real PE header is
+ * still located via the normal e_lfanew slot at file offset 0x3c
+ * (read as pe_offset elsewhere in this codebase), so no changes are
+ * needed to the existing "MZ" / "PE\0\0" detection code to handle
+ * these images. Only the fields needed to identify the image and to
+ * locate/validate its compressed payload are kept here; this is a
+ * Linux-specific header, not a Microsoft PE/COFF structure, hence
+ * the lower case field names (matching this project's convention
+ * for local variables such as pe_offset/efi_offset) rather than the
+ * PascalCase used for the mirrored Microsoft structures above.
+ */
+struct efi_zboot_header {
+	uint8_t msdos_magic[2];	/* PE/COFF 'MZ' magic number */
+	uint8_t reserved0[2];
+	uint8_t zimg_magic[4];		/* "zimg" for Linux EFI zboot images */
+	uint32_t payload_offset;	/* LE offset to compressed payload */
+	uint32_t payload_size;		/* LE size of the compressed payload */
+	uint8_t reserved1[8];
+	char compression_type[32];	/* Compression type, NUL padded */
+};
+
 /**
  * efi_pe_characteristic_string() - description of a COFF Characteristics
  * bit
@@ -279,6 +303,44 @@ char *efi_pe_fdt_compatible(const void *data, size_t size);
  *		Caller must free() the result.
  */
 char *efi_pe_fdt_compatible_fd(int fd, long long offset, size_t size);
+
+/**
+ * efi_zboot_header_read() - detect and read an EFI zboot header
+ *
+ * Reads the first sizeof(struct efi_zboot_header) bytes of the file
+ * open on @fd and checks the "MZ" and "zimg" magic values. This
+ * never treats "not a zboot image" as an error: it simply returns
+ * 0. Callers must not report a 0 return as a failure to the user;
+ * it only means the file is a plain (non zboot) EFI binary, which is
+ * the common, expected case for the vast majority of files.
+ *
+ * @fd:		file descriptor open for reading, positioned anywhere
+ *		(the header is always read from offset 0)
+ * @hdr:	filled in with the header contents on success
+ * Return:	1 if @hdr contains a valid EFI zboot header, 0 otherwise
+ *		(including on a short read)
+ */
+int efi_zboot_header_read(int fd, struct efi_zboot_header *hdr);
+
+/**
+ * efi_zboot_compression_string() - NUL-terminated compression type
+ *
+ * The compression_type field of struct efi_zboot_header is a fixed
+ * size buffer that is NUL padded but not guaranteed to contain a
+ * terminator within its bounds if corrupted, and may contain
+ * characters unsuitable for use in a file name. This copies it into
+ * a caller supplied buffer, guarantees NUL termination, and replaces
+ * any character that is not alphanumeric, '.', '_' or '-' with '_'
+ * so that the result can be safely used as a suggested file name
+ * extension (e.g. "payload.<result>"). If the resulting string
+ * would be empty, "bin" is stored instead.
+ *
+ * @hdr:	header to read the compression type from
+ * @out:	buffer of at least 33 bytes to receive the NUL
+ *		terminated, sanitized compression type string
+ */
+void efi_zboot_compression_string(const struct efi_zboot_header *hdr,
+				   char out[33]);
 
 #ifdef __cplusplus
 }

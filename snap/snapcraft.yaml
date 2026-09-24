@@ -138,6 +138,8 @@ parts:
     source: .
     source-subdir: gtk
     build-snaps: [gnome-core26-sdk/latest/candidate]
+    build-packages:
+      - libfdt-dev
     build-environment:
       - PKG_CONFIG_PATH: /snap/gnome-core26-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:/snap/gnome-core26-sdk/current/usr/lib/pkgconfig:/snap/gnome-core26-sdk/current/usr/share/pkgconfig
       - CMAKE_PREFIX_PATH: /snap/gnome-core26-sdk/current/usr

@@ -109,6 +109,7 @@ struct save_info {
 	guint32 raw_size;
 	char *name;
 	gboolean is_data_dir;
+	gboolean is_zboot_payload;
 };
 
 static void save_info_free(struct save_info *info)
@@ -167,11 +168,16 @@ static void on_save_response(GtkDialog *dialog, gint response,
 			gtk_dialog_run(GTK_DIALOG(msg));
 			gtk_widget_destroy(msg);
 		} else {
-			char *msg_text = g_strdup_printf(
-				info->is_data_dir ?
-					"Directory saved to: %s" :
-					"Section saved to: %s",
-				save_path);
+			const char *msg_fmt;
+			char *msg_text;
+
+			if (info->is_zboot_payload)
+				msg_fmt = "Payload saved to: %s";
+			else if (info->is_data_dir)
+				msg_fmt = "Directory saved to: %s";
+			else
+				msg_fmt = "Section saved to: %s";
+			msg_text = g_strdup_printf(msg_fmt, save_path);
 
 			gtk_statusbar_pop(
 				GTK_STATUSBAR(info->win->status_bar),
@@ -225,7 +231,8 @@ static void save_section_activated(GtkMenuItem *item, gpointer user_data)
 	}
 
 	dialog = gtk_file_chooser_dialog_new(
-		info->is_data_dir ? "Save Directory" : "Save Section",
+		info->is_zboot_payload ? "Save Payload" :
+			info->is_data_dir ? "Save Directory" : "Save Section",
 		GTK_WINDOW(info->win), GTK_FILE_CHOOSER_ACTION_SAVE,
 		"_Cancel", GTK_RESPONSE_CANCEL, "_Save",
 		GTK_RESPONSE_ACCEPT, NULL);
@@ -288,26 +295,36 @@ static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event,
 
 	{
 		gboolean is_section = FALSE, is_dir = FALSE;
+		gboolean is_zboot_payload = FALSE;
 		guint32 raw_offset = 0, raw_size = 0;
 		char *name = NULL;
 
 		gtk_tree_model_get(GTK_TREE_MODEL(win->store), &iter,
 				    PE_COL_IS_SECTION, &is_section,
 				    PE_COL_IS_DATA_DIR, &is_dir,
+				    PE_COL_IS_ZBOOT_PAYLOAD, &is_zboot_payload,
 				    PE_COL_RAW_OFFSET, &raw_offset,
 				    PE_COL_RAW_SIZE, &raw_size,
 				    PE_COL_NAME, &name, -1);
-		if (is_section || is_dir) {
-			GtkWidget *mi = gtk_menu_item_new_with_label(
-				is_dir ? "Save directory to file..." :
-					 "Save section to file...");
+		if (is_section || is_dir || is_zboot_payload) {
+			const char *label_text;
+			GtkWidget *mi;
 			struct save_info *info = g_new0(struct save_info, 1);
+
+			if (is_zboot_payload)
+				label_text = "Save payload to file...";
+			else if (is_dir)
+				label_text = "Save directory to file...";
+			else
+				label_text = "Save section to file...";
+			mi = gtk_menu_item_new_with_label(label_text);
 
 			info->win = win;
 			info->raw_offset = raw_offset;
 			info->raw_size = raw_size;
 			info->name = g_strdup(name ? name : "");
 			info->is_data_dir = is_dir;
+			info->is_zboot_payload = is_zboot_payload;
 
 			g_signal_connect(mi, "activate",
 					  G_CALLBACK(save_section_activated),
@@ -539,7 +556,8 @@ static void setup_ui(EfiAnalyzerMainWindow *win)
 	/* Tree view */
 	win->store = gtk_tree_store_new(
 		PE_N_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN,
-		G_TYPE_BOOLEAN, G_TYPE_UINT, G_TYPE_UINT, G_TYPE_STRING);
+		G_TYPE_BOOLEAN, G_TYPE_UINT, G_TYPE_UINT, G_TYPE_STRING,
+		G_TYPE_BOOLEAN);
 
 	win->tree_view = gtk_tree_view_new_with_model(
 		GTK_TREE_MODEL(win->store));

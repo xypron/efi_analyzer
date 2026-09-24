@@ -128,14 +128,17 @@ void MainWindow::showContextMenu(const QPoint &pos)
     if (propItem) {
         bool isSection = propItem->data(Qt::UserRole + 1).toBool();
         bool isDataDirectory = propItem->data(Qt::UserRole + 5).toBool();
+        bool isZbootPayload = propItem->data(Qt::UserRole + 6).toBool();
         uint32_t rawSize = propItem->data(Qt::UserRole + 3).toUInt();
         uint32_t rawOffset = propItem->data(Qt::UserRole + 2).toUInt();
 
-        if ((isSection && rawSize > 0) || (isDataDirectory && rawSize > 0 && rawOffset > 0)) {
+        if ((isSection && rawSize > 0) || (isDataDirectory && rawSize > 0 && rawOffset > 0) ||
+            (isZbootPayload && rawSize > 0)) {
             if (menuPopulated) {
                 contextMenu.addSeparator();
             }
-            QString actionText = isSection ? tr("Save section to file...") : tr("Save directory to file...");
+            QString actionText = isZbootPayload ? tr("Save payload to file...") :
+                                  isSection ? tr("Save section to file...") : tr("Save directory to file...");
             QAction *downloadAct = new QAction(QIcon::fromTheme("document-save"), actionText, this);
             downloadAct->setData(propIndex); // Store the column 0 index so download logic works natively
             connect(downloadAct, &QAction::triggered, this, &MainWindow::downloadSection);
@@ -184,7 +187,9 @@ void MainWindow::downloadSection()
     QString defaultName = secName;
     defaultName.replace(QRegularExpression("[^a-zA-Z0-9_.-]"), "_");
     bool isDataDir = item->data(Qt::UserRole + 5).toBool();
-    QString dialogTitle = isDataDir ? tr("Save Directory") : tr("Save Section");
+    bool isZbootPayload = item->data(Qt::UserRole + 6).toBool();
+    QString dialogTitle = isZbootPayload ? tr("Save Payload") :
+                           isDataDir ? tr("Save Directory") : tr("Save Section");
 
     QString savePath = QFileDialog::getSaveFileName(this, dialogTitle, defaultName, tr("All Files (*)"));
     if (savePath.isEmpty()) return;
@@ -214,7 +219,9 @@ void MainWindow::downloadSection()
 
     outFile.write(data);
     if (outFile.commit()) {
-        statusBar()->showMessage((isDataDir ? tr("Directory saved to: %1") : tr("Section saved to: %1")).arg(savePath));
+        QString savedMsg = isZbootPayload ? tr("Payload saved to: %1") :
+                            isDataDir ? tr("Directory saved to: %1") : tr("Section saved to: %1");
+        statusBar()->showMessage(savedMsg.arg(savePath));
     } else {
         QMessageBox::warning(this, tr("Error"), tr("Failed to save file."));
     }
