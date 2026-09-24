@@ -239,6 +239,8 @@ static void save_section_activated(GtkMenuItem *item, gpointer user_data)
 	gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog),
 					   default_name);
 	g_free(default_name);
+	gtk_file_chooser_set_do_overwrite_confirmation(
+		GTK_FILE_CHOOSER(dialog), TRUE);
 
 	g_signal_connect(dialog, "response",
 			  G_CALLBACK(on_save_response), info);

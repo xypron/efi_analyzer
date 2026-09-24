@@ -7,6 +7,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QHeaderView>
 #include <QIcon>
@@ -193,6 +194,14 @@ void MainWindow::downloadSection()
 
     QString savePath = QFileDialog::getSaveFileName(this, dialogTitle, defaultName, tr("All Files (*)"));
     if (savePath.isEmpty()) return;
+
+    if (QFileInfo::exists(savePath)) {
+        QMessageBox::StandardButton reply = QMessageBox::question(
+            this, tr("Confirm Overwrite"),
+            tr("%1 already exists.\nDo you want to replace it?").arg(savePath),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        if (reply != QMessageBox::Yes) return;
+    }
 
     QFile inFile(currentFilePath);
     if (!inFile.open(QIODevice::ReadOnly)) {
