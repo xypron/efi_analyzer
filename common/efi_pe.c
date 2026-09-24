@@ -5,8 +5,22 @@
  * Shared PE/COFF/EFI string tables and lookup helpers, see efi_pe.h.
  */
 #include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <libfdt.h>
 
 #include "efi_pe.h"
+
+/*
+ * Real device trees embedded in EFI binaries are small (typically a
+ * few KiB to a few hundred KiB). Reject implausibly large candidates
+ * up front so that a corrupt or hostile SizeOfRawData value cannot
+ * trigger a huge allocation attempt merely to find out it is not an
+ * FDT.
+ */
+#define FDT_MAX_PLAUSIBLE_SIZE (16u * 1024u * 1024u)
 
 static const char * const efi_pe_characteristic_strings[16] = {
 	"Relocation information was stripped from the file.",
@@ -166,4 +180,77 @@ const char *efi_pe_subsystem_name(uint16_t subsystem)
 	default:
 		return NULL;
 	}
+}
+
+char *efi_pe_fdt_compatible(const void *data, size_t size)
+{
+	uint32_t magic;
+	const void *compatible;
+	int root;
+	int len;
+	char *result;
+
+	if (!data || size < sizeof(struct fdt_header) ||
+	    size > FDT_MAX_PLAUSIBLE_SIZE)
+		return NULL;
+
+	/*
+	 * Cheap magic check before running the full libfdt structural
+	 * validation, to quickly skip the overwhelming majority of
+	 * sections that are not device trees at all.
+	 */
+	memcpy(&magic, data, sizeof(magic));
+	if (fdt32_to_cpu(magic) != FDT_MAGIC)
+		return NULL;
+
+	if (fdt_check_full(data, size) != 0)
+		return NULL;
+
+	root = fdt_path_offset(data, "/");
+	if (root < 0)
+		return NULL;
+
+	compatible = fdt_getprop(data, root, "compatible", &len);
+	if (!compatible || len <= 0)
+		return NULL;
+
+	/*
+	 * The "compatible" property is a list of NUL-separated
+	 * strings; return only the first (most specific) entry. It is
+	 * not guaranteed to be NUL-terminated within the queried
+	 * length, so bound the copy explicitly.
+	 */
+	len = (int)strnlen(compatible, (size_t)len);
+	result = malloc((size_t)len + 1);
+	if (!result)
+		return NULL;
+	memcpy(result, compatible, (size_t)len);
+	result[len] = '\0';
+
+	return result;
+}
+
+char *efi_pe_fdt_compatible_fd(int fd, long long offset, size_t size)
+{
+	void *buf;
+	ssize_t n;
+	char *result;
+
+	if (size < sizeof(struct fdt_header) || size > FDT_MAX_PLAUSIBLE_SIZE)
+		return NULL;
+
+	buf = malloc(size);
+	if (!buf)
+		return NULL;
+
+	n = pread(fd, buf, size, (off_t)offset);
+	if (n != (ssize_t)size) {
+		free(buf);
+		return NULL;
+	}
+
+	result = efi_pe_fdt_compatible(buf, size);
+	free(buf);
+
+	return result;
 }

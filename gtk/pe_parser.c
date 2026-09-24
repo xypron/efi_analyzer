@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -145,6 +146,8 @@ gboolean pe_parser_parse_file(const char *path, GtkTreeStore *store,
 	GtkTreeIter sections_iter;
 	unsigned int i;
 	gboolean have_dirs;
+	struct stat st;
+	off_t file_size;
 
 	gtk_tree_store_clear(store);
 
@@ -154,6 +157,15 @@ gboolean pe_parser_parse_file(const char *path, GtkTreeStore *store,
 			    "Cannot open file: %s", g_strerror(errno));
 		return FALSE;
 	}
+
+	/*
+	 * Used to bound-check each section's raw data range before
+	 * attempting to read it (e.g. for the device tree detection
+	 * below); if fstat() fails, treat the file as having size 0
+	 * so that no section is considered in-bounds and no attempt
+	 * is made to read (fail soft: never abort parsing here).
+	 */
+	file_size = fstat(fd, &st) == 0 ? st.st_size : 0;
 
 	file_iter = add_row(store, NULL, "File", NULL);
 	{
@@ -402,6 +414,29 @@ gboolean pe_parser_parse_file(const char *path, GtkTreeStore *store,
 					    PE_COL_NAME, sec_name,
 					    -1);
 			g_free(label);
+
+			/*
+			 * If this section's raw data is a valid
+			 * flattened device tree, show its
+			 * /compatible property as the first line of
+			 * the section's information.
+			 * efi_pe_fdt_compatible_fd() fails soft
+			 * (returns NULL) for anything that is not a
+			 * device tree, so this never turns into a
+			 * user visible error.
+			 */
+			if ((off_t)sh.PointerToRawData +
+				    (off_t)sh.SizeOfRawData <= file_size) {
+				char *compatible = efi_pe_fdt_compatible_fd(
+					fd, sh.PointerToRawData,
+					sh.SizeOfRawData);
+
+				if (compatible) {
+					add_row(store, &sec_iter,
+						"Compatible", compatible);
+					g_free(compatible);
+				}
+			}
 
 			add_row_printf(store, &sec_iter, "Virtual size",
 				       "0x%x", sh.VirtualSize);

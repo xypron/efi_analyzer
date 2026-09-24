@@ -2,6 +2,8 @@
 
 #include "pe_parser.h"
 
+#include <cstdlib>
+
 #include <QFile>
 #include <QDataStream>
 #include <QFileInfo>
@@ -280,6 +282,22 @@ bool PeParser::parseFile(const QString &filePath, QStandardItemModel *model, QSt
         secItem->setData(sh.PointerToRawData, Qt::UserRole + 2); // PointerToRawData
         secItem->setData(sh.SizeOfRawData, Qt::UserRole + 3); // SizeOfRawData
         secItem->setData(secName, Qt::UserRole + 4); // Section Name
+
+        // If this section's raw data is a valid flattened device
+        // tree, show its /compatible property as the first line of
+        // the section's information. efi_pe_fdt_compatible_fd()
+        // fails soft (returns NULL) for anything that is not a
+        // device tree, so this never turns into a user visible
+        // error.
+        if ((qint64)sh.PointerToRawData + (qint64)sh.SizeOfRawData <= file.size()) {
+            char *compatible = efi_pe_fdt_compatible_fd(
+                file.handle(), sh.PointerToRawData, sh.SizeOfRawData);
+
+            if (compatible) {
+                secItem->appendRow(QList<QStandardItem*>() << new QStandardItem("Compatible") << new QStandardItem(QString::fromUtf8(compatible)));
+                free(compatible);
+            }
+        }
 
         secItem->appendRow(QList<QStandardItem*>() << new QStandardItem("Virtual size") << new QStandardItem(QString("0x%1").arg(sh.VirtualSize, 0, 16)));
         secItem->appendRow(QList<QStandardItem*>() << new QStandardItem("Virtual address") << new QStandardItem(QString("0x%1").arg(sh.VirtualAddress, 0, 16)));

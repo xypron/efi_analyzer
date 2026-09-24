@@ -147,3 +147,4 @@ parts:
       - -DCMAKE_INSTALL_PREFIX=/usr
     stage-packages:
       - libc6
+      - libfdt1

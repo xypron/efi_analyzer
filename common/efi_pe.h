@@ -14,6 +14,7 @@
 #ifndef EFI_PE_H
 #define EFI_PE_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -230,6 +231,54 @@ const char *efi_pe_machine_type_name(uint16_t machine);
  * Return:	description, or NULL if the subsystem is not recognized
  */
 const char *efi_pe_subsystem_name(uint16_t subsystem);
+
+/**
+ * efi_pe_fdt_compatible() - identify a flattened device tree (FDT/DTB)
+ * and return its root /compatible property
+ *
+ * Some EFI binaries embed a device tree in one of their sections
+ * (e.g. U-Boot's FIT-less DTB payloads). This checks whether @data
+ * looks like a valid FDT blob (magic number, followed by a full
+ * libfdt structural check) and, if so, returns the first string of
+ * the root node's "compatible" property.
+ *
+ * This function never treats "not an FDT" as an error: it simply
+ * returns NULL. Callers must not report a NULL return as a failure
+ * to the user; it only means the section is not a device tree (or is
+ * malformed/truncated), which is the common, expected case for the
+ * vast majority of sections.
+ *
+ * @data:	buffer to inspect (e.g. a section's raw data)
+ * @size:	size of @data in bytes
+ * Return:	newly malloc'd NUL-terminated string with the first
+ *		entry of the root /compatible property, or NULL if
+ *		@data is not a valid FDT, is too small/large to
+ *		plausibly be one, has no /compatible property, or on
+ *		allocation failure. Caller must free() the result.
+ */
+char *efi_pe_fdt_compatible(const void *data, size_t size);
+
+/**
+ * efi_pe_fdt_compatible_fd() - efi_pe_fdt_compatible() reading from a
+ * file descriptor
+ *
+ * Reads @size bytes at @offset from @fd into a temporary buffer and
+ * calls efi_pe_fdt_compatible() on it. The caller is expected to have
+ * already checked that @offset + @size does not exceed the size of
+ * the file; this function additionally re-checks that the read
+ * actually returns the requested number of bytes.
+ *
+ * As with efi_pe_fdt_compatible(), a NULL return is not an error
+ * condition, just means "not a device tree".
+ *
+ * @fd:		file descriptor open for reading
+ * @offset:	file offset of the candidate FDT blob
+ * @size:	size of the candidate FDT blob in bytes
+ * Return:	newly malloc'd NUL-terminated string with the first
+ *		entry of the root /compatible property, or NULL.
+ *		Caller must free() the result.
+ */
+char *efi_pe_fdt_compatible_fd(int fd, long long offset, size_t size);
 
 #ifdef __cplusplus
 }

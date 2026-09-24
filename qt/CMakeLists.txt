@@ -20,7 +20,7 @@ add_executable(efianalyzer-qt
     ../common/efi_pe.h
 )
 
-target_link_libraries(efianalyzer-qt PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets)
+target_link_libraries(efianalyzer-qt PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets fdt)
 
 include(GNUInstallDirs)
 install(TARGETS efianalyzer-qt DESTINATION ${CMAKE_INSTALL_BINDIR})

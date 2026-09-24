@@ -18,7 +18,7 @@ add_executable(efianalyze-gui
 )
 
 target_include_directories(efianalyze-gui PRIVATE ${GTK3_INCLUDE_DIRS})
-target_link_libraries(efianalyze-gui PRIVATE ${GTK3_LIBRARIES})
+target_link_libraries(efianalyze-gui PRIVATE ${GTK3_LIBRARIES} fdt)
 target_compile_options(efianalyze-gui PRIVATE ${GTK3_CFLAGS_OTHER} -Wall -Wextra)
 
 include(GNUInstallDirs)
