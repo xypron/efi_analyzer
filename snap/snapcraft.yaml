@@ -1,7 +1,7 @@
 name: efianalyzer-gui
 title: EFI Analyzer GUI
 base: core26
-version: '1.0'
+version: '0.1'
 summary: Analyze UEFI binaries (GTK3 GUI)
 description: |
   Graphical tool to inspect the headers, data directories, and
@@ -14,7 +14,7 @@ source-code: https://github.com/xypron/efi_analyzer
 website: https://github.com/xypron/efi_analyzer
 license: BSD-2-Clause
 confinement: strict
-grade: stable
+grade: devel
 assumes: [snapd2.43]
 
 # Manually reproduces what the snapcraft "gnome" extension generates
