@@ -14,6 +14,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "common/efi_pe.h"
+
 #define BUFLEN 10
 
 /**
@@ -26,240 +28,6 @@
  * @C:	structure
  */
 #define rds(A,B,C) read_structure(A, B, sizeof(*C), C)
-
-#define IMAGE_FILE_MACHINE_I386		0x014c
-#define IMAGE_FILE_MACHINE_AMD64	0x8664
-#define IMAGE_FILE_MACHINE_IA64		0x0200
-#define IMAGE_FILE_MACHINE_ARM		0x01c0 /* not in UEFI 2.10 */
-#define IMAGE_FILE_MACHINE_THUMB	0x01c2
-#define IMAGE_FILE_MACHINE_ARMNT	0x01c4 /* not in UEFI 2.10 */
-#define IMAGE_FILE_MACHINE_EBC		0x0ebc
-#define IMAGE_FILE_MACHINE_ARM64	0xaa64
-#define IMAGE_FILE_MACHINE_RISCV32	0x5032
-#define IMAGE_FILE_MACHINE_RISCV64	0x5064
-#define IMAGE_FILE_MACHINE_RISCV128	0x5128
-#define IMAGE_FILE_MACHINE_LOONGARCH32	0x6232
-#define IMAGE_FILE_MACHINE_LOONGARCH64	0x6264
-
-#define IMAGE_FILE_RELOCS_STRIPPED		0x0001
-#define IMAGE_FILE_EXECUTABLE_IMAGE		0x0002
-#define IMAGE_FILE_LINE_NUMS_STRIPPED		0x0004
-#define IMAGE_FILE_LOCAL_SYMS_STRIPPED		0x0008
-#define IMAGE_FILE_AGGRESIVE_WS_TRIM		0x0010
-#define IMAGE_FILE_LARGE_ADDRESS_AWARE		0x0020
-#define IMAGE_FILE_16BIT_MACHINE		0x0040
-#define IMAGE_FILE_BYTES_REVERSED_LO		0x0080
-#define IMAGE_FILE_32BIT_MACHINE		0x0100
-#define IMAGE_FILE_DEBUG_STRIPPED		0x0200
-#define IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP	0x0400
-#define IMAGE_FILE_NET_RUN_FROM_SWAP		0x0800
-#define IMAGE_FILE_SYSTEM			0x1000
-#define IMAGE_FILE_DLL				0x2000
-#define IMAGE_FILE_UP_SYSTEM_ONLY		0x4000
-#define IMAGE_FILE_BYTES_REVERSED_HI		0x8000
-
-static const char * const characteristic_strings[] = {
-	"Relocation information was stripped from the file.",
-	"The file is executable.",
-	"COFF line numbers were stripped from the file.",
-	"COFF symbol table entries were stripped from file.",
-	"Aggressively trim the working set. This value is obsolete.",
-	"The application can handle addresses larger than 2 GiB.",
-	"Use of this flag is reserved for future use.",
-	"Little endian: LSB precedes MSB in memory.",
-	"The computer supports 32-bit words.",
-	"Debugging information was removed.",
-	"If the image is on removable media, copy and run from swap file.",
-	"If the image is on the network, copy and run from swap file.",
-	"The image is a system file.",
-	"The image is a dynamic link library (DLL).",
-	"The file should be run only on a uniprocessor computer.",
-	"Big endian: MSB precedes LSB in memory.",
-};
-
-static const char * const section_characteristics[] = {
-	"Reserved.",
-	"Reserved.",
-	"Reserved.",
-	"The section should not be padded to the next boundary.",
-	"Reserved.",
-	"The section contains executable code.",
-	"The section contains initialized data.",
-	"The section contains uninitialized data.",
-	"Reserved.",
-	"The section contains comments or other information.",
-	"Reserved.",
-	"The section will not become part of the image.",
-	"The section contains COMDAT data.",
-	"Reserved.",
-	"Reset speculative exceptions handling bits in the TLB entries.",
-	"The section contains data referenced through the global pointer.",
-	"Reserved.",
-	"Reserved.",
-	"Reserved.",
-	"Reserved.",
-	"Align data on a 1-byte boundary.",
-	"Align data on a 2-byte boundary.",
-	"Align data on a 8-byte boundary.",
-	"Align data on a 128-byte boundary.",
-	"The section contains extended relocations.",
-	"The section can be discarded as needed.",
-	"The section cannot be cached.",
-	"The section cannot be paged.",
-	"The section can be shared in memory.",
-	"The section can be executed as code.",
-	"The section can be read.",
-	"The section can be written to.",
-};
-
-static const char * const dll_characteristics[] = {
-	"Reserved.",
-	"Reserved.",
-	"Reserved.",
-	"Reserved.",
-	"Reserved.",
-	"Image can handle a high entropy 64-bit virtual address space.",
-	"DLL can be relocated at load time.",
-	"Code Integrity checks are enforced.",
-	"Image is NX compatible.",
-	"Isolation aware, but do not isolate the image.",
-	"Does not use structured exception (SE) handling.",
-	"Do not bind the image.",
-	"Image must execute in an AppContainer.",
-	"A WDM driver.",
-	"Image supports Control Flow Guard.",
-	"Terminal Server aware.",
-};
-
-#define IMAGE_SUBSYSTEM_EFI_APPLICATION		10
-#define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
-#define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER	12
-#define IMAGE_SUBSYSTEM_EFI_ROM			13
-
-#define OPTIONAL_HEADER_MAGIC_PE32	0x010b
-#define OPTIONAL_HEADER_MAGIC_PE32_PLUS	0x020b
-
-typedef struct _IMAGE_DATA_DIRECTORY {
-	uint32_t VirtualAddress;
-	uint32_t Size;
-} IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;
-
-struct coff_header {
-	uint16_t Machine;
-	uint16_t NumberOfSections;
-	uint32_t TimeDateStamp;
-	uint32_t PointerToSymbolTable;
-	uint32_t NumberOfSymbols;
-	uint16_t SizeOfOptionalHeader;
-	uint16_t Characteristics;
-};
-
-struct optional_header_standard_fields {
-	uint16_t Magic;
-	uint8_t MajorLinkerVersion;
-	uint8_t MinorLinkerVersion;
-	uint32_t SizeOfCode;
-	uint32_t SizeOfInitializedData;
-	uint32_t SizeOfUninitializedData;
-	uint32_t AddressOfEntryPoint;
-	uint32_t BaseOfCode;
-};
-struct optional_header_pe32_extra_field {
-	uint32_t BaseOfData;
-};
-
-struct optional_header_windows_specific_fields_32 {
-	uint32_t ImageBase;
-	uint32_t SectionAlignment;
-	uint32_t FileAlignment;
-	uint16_t MajorOperatingSystemVersion;
-	uint16_t MinorOperatingSystemVersion;
-	uint16_t MajorImageVersion;
-	uint16_t MinorImageVersion;
-	uint16_t MajorSubsystemVersion;
-	uint16_t MinorSubsystemVersion;
-	uint32_t Win32VersionValue;
-	uint32_t SizeOfImage;
-	uint32_t SizeOfHeaders;
-	uint32_t CheckSum;
-	uint16_t Subsystem;
-	uint16_t DllCharacteristics;
-	uint32_t SizeOfStackReserver;
-	uint32_t SizeOfStackCommit;
-	uint32_t SizeOfHeapReserve;
-	uint32_t SizeOfHeapCommit;
-	uint32_t LoaderFlags;
-	uint32_t NumberOfRvaAndSizes;
-	IMAGE_DATA_DIRECTORY ExportTable;
-	IMAGE_DATA_DIRECTORY ImportTable;
-	IMAGE_DATA_DIRECTORY ResourceTable;
-	IMAGE_DATA_DIRECTORY ExceptionTable;
-	IMAGE_DATA_DIRECTORY CertificateTable;
-	IMAGE_DATA_DIRECTORY BaseRelocationTable;
-	IMAGE_DATA_DIRECTORY Debug;
-	IMAGE_DATA_DIRECTORY Architecture;
-	IMAGE_DATA_DIRECTORY GlobalPtr;
-	IMAGE_DATA_DIRECTORY TLSTable;
-	IMAGE_DATA_DIRECTORY LoadConfigTable;
-	IMAGE_DATA_DIRECTORY BoundImport;
-	IMAGE_DATA_DIRECTORY IAT;
-	IMAGE_DATA_DIRECTORY DelayImportDescriptor;
-	IMAGE_DATA_DIRECTORY CLRRuntimeHeader;
-	IMAGE_DATA_DIRECTORY Reserved;
-};
-
-struct optional_header_windows_specific_fields {
-	uint64_t ImageBase;
-	uint32_t SectionAlignment;
-	uint32_t FileAlignment;
-	uint16_t MajorOperatingSystemVersion;
-	uint16_t MinorOperatingSystemVersion;
-	uint16_t MajorImageVersion;
-	uint16_t MinorImageVersion;
-	uint16_t MajorSubsystemVersion;
-	uint16_t MinorSubsystemVersion;
-	uint32_t Win32VersionValue;
-	uint32_t SizeOfImage;
-	uint32_t SizeOfHeaders;
-	uint32_t CheckSum;
-	uint16_t Subsystem;
-	uint16_t DllCharacteristics;
-	uint64_t SizeOfStackReserver;
-	uint64_t SizeOfStackCommit;
-	uint64_t SizeOfHeapReserve;
-	uint64_t SizeOfHeapCommit;
-	uint32_t LoaderFlags;
-	uint32_t NumberOfRvaAndSizes;
-	IMAGE_DATA_DIRECTORY ExportTable;
-	IMAGE_DATA_DIRECTORY ImportTable;
-	IMAGE_DATA_DIRECTORY ResourceTable;
-	IMAGE_DATA_DIRECTORY ExceptionTable;
-	IMAGE_DATA_DIRECTORY CertificateTable;
-	IMAGE_DATA_DIRECTORY BaseRelocationTable;
-	IMAGE_DATA_DIRECTORY Debug;
-	IMAGE_DATA_DIRECTORY Architecture;
-	IMAGE_DATA_DIRECTORY GlobalPtr;
-	IMAGE_DATA_DIRECTORY TLSTable;
-	IMAGE_DATA_DIRECTORY LoadConfigTable;
-	IMAGE_DATA_DIRECTORY BoundImport;
-	IMAGE_DATA_DIRECTORY IAT;
-	IMAGE_DATA_DIRECTORY DelayImportDescriptor;
-	IMAGE_DATA_DIRECTORY CLRRuntimeHeader;
-	IMAGE_DATA_DIRECTORY Reserved;
-};
-
-struct section_header {
-	char Name[8];
-	uint32_t VirtualSize;
-	uint32_t VirtualAddress;
-	uint32_t SizeOfRawData;
-	uint32_t PointerToRawData;
-	uint32_t PointerToRelocations;
-	uint32_t PointerToLinenumbers;
-	uint16_t NumberOfRelocations;
-	uint16_t NumberOfLinenumbers;
-	uint32_t Characteristics;
-};
 
 struct pci_expansion_rom_header {
 	uint16_t Signature;
@@ -291,7 +59,7 @@ static void print_characteristics(uint16_t c)
 	printf("Characteristics: 0x%04x\n", c);
 	for (i = 0; i < 16; ++i, mask <<= 1) {
 		if (c & mask)
-			printf("  * %s\n", characteristic_strings[i]);
+			printf("  * %s\n", efi_pe_characteristic_string(i));
 	}
 }
 
@@ -305,28 +73,11 @@ static void print_table_info(IMAGE_DATA_DIRECTORY *tables, uint32_t num_tables)
 {
 	IMAGE_DATA_DIRECTORY *end = &tables[num_tables];
 	int pos = 0;
-	const char *labels[] = {
-		"Exports",
-		"Imports",
-		"Resources",
-		"Exceptions",
-		"Certificates",
-		"Base Relocations",
-		"Debug",
-		"Architecture",
-		"GlobalPtr",
-		"TLS",
-		"Load Config",
-		"Bound Import",
-		"IAT",
-		"Delay Import Descriptor",
-		"CLR Runtime Header",
-		"Reserved",
-	};
 
 	printf("Number data tables: %d\n", num_tables);
 	for(IMAGE_DATA_DIRECTORY *table = tables; table < end; ++table)
-		printf("  %-20.20s: 0x%08x - 0x%08x\n", labels[pos++],
+		printf("  %-20.20s: 0x%08x - 0x%08x\n",
+		       efi_pe_data_directory_names[pos++],
 		       table->VirtualAddress,
 		       table->VirtualAddress + table->Size);
 }
@@ -346,7 +97,7 @@ static void print_section_characteristics(uint32_t c)
 	printf("  Characteristics: 0x%08x\n", c);
 	for (i = 0; i < 32; ++i, mask <<= 1) {
 		if (c & mask)
-			printf("    * %s\n", section_characteristics[i]);
+			printf("    * %s\n", efi_pe_section_characteristic_string(i));
 	}
 
 	if (align) {
@@ -439,50 +190,10 @@ static void check_string(int fd, off_t pos, size_t len, const char *expected)
  */
 static void print_machine_type(uint16_t machine)
 {
-	printf("Machine type: 0x%04x, ", machine);
-	switch (machine) {
-	case IMAGE_FILE_MACHINE_I386:
-		printf("Intel 386\n");
-		break;
-	case IMAGE_FILE_MACHINE_AMD64:
-		printf("x64\n");
-		break;
-	case IMAGE_FILE_MACHINE_IA64:
-		printf("Intel Itanium\n");
-		break;
-	case IMAGE_FILE_MACHINE_ARM:
-		printf("ARM little endian\n");
-		break;
-	case IMAGE_FILE_MACHINE_THUMB:
-		printf("ARM or Thumb (\"interworking\")\n");
-		break;
-	case IMAGE_FILE_MACHINE_ARMNT:
-		printf("ARM Thumb-2 little endian\n");
-		break;
-	case IMAGE_FILE_MACHINE_ARM64:
-		printf("ARM64 little endian\n");
-		break;
-	case IMAGE_FILE_MACHINE_LOONGARCH32:
-		printf("LoongArch 32-bit\n");
-		break;
-	case IMAGE_FILE_MACHINE_LOONGARCH64:
-		printf("LoongArch 64-bit\n");
-		break;
-	case IMAGE_FILE_MACHINE_RISCV32:
-		printf("RISC-V 32-bit\n");
-		break;
-	case IMAGE_FILE_MACHINE_RISCV64:
-		printf("RISC-V 64-bit\n");
-		break;
-	case IMAGE_FILE_MACHINE_RISCV128:
-		printf("RISC-V 128-bit\n");
-		break;
-	case IMAGE_FILE_MACHINE_EBC:
-		printf("EFI byte code\n");
-		break;
-	default:
-		printf("Unknown machine type\n");
-	}
+	const char *name = efi_pe_machine_type_name(machine);
+
+	printf("Machine type: 0x%04x, %s\n", machine,
+	       name ? name : "Unknown machine type");
 }
 
 /**
@@ -560,23 +271,13 @@ static uint32_t skip_pci_rom_header(int fd)
  */
 static void print_subsystem(uint16_t subsystem)
 {
+	const char *name = efi_pe_subsystem_name(subsystem);
+
 	printf("Subsystem: ");
-	switch(subsystem) {
-	case IMAGE_SUBSYSTEM_EFI_APPLICATION:
-		printf("EFI application\n");
-		break;
-	case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
-		printf("EFI boot service driver\n");
-		break;
-	case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
-		printf("EFI runtime driver\n");
-		break;
-	case IMAGE_SUBSYSTEM_EFI_ROM:
-		printf("EFI ROM image\n");
-		break;
-	default:
+	if (name)
+		printf("%s\n", name);
+	else
 		printf("Unknown Windows subsystem %d\n", subsystem);
-	}
 }
 
 
@@ -612,7 +313,7 @@ static void print_dll_characteristics(unsigned int c)
 	printf("DLL Characteristics: 0x%04x\n", c);
 	for (i = 0; i < 16; ++i, mask <<= 1) {
 		if (c & mask)
-			printf("  * %s\n", dll_characteristics[i]);
+			printf("  * %s\n", efi_pe_dll_characteristics[i]);
 	}
 }
 

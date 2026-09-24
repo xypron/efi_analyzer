@@ -13,7 +13,7 @@ CFLAGS += \
 	-fstack-clash-protection
 
 all:
-	gcc efianalyze.c $(CFLAGS) -o efianalyze
+	gcc efianalyze.c common/efi_pe.c $(CFLAGS) -o efianalyze
 
 check:
 	./efianalyze -h

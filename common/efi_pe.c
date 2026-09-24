@@ -1,0 +1,169 @@
+// SPDX-License-Identifier:     BSD-2-Clause
+/*
+ * Copyright (c) 2017-2019 Heinrich Schuchardt
+ *
+ * Shared PE/COFF/EFI string tables and lookup helpers, see efi_pe.h.
+ */
+#include <stddef.h>
+
+#include "efi_pe.h"
+
+static const char * const efi_pe_characteristic_strings[16] = {
+	"Relocation information was stripped from the file.",
+	"The file is executable.",
+	"COFF line numbers were stripped from the file.",
+	"COFF symbol table entries were stripped from file.",
+	"Aggressively trim the working set. This value is obsolete.",
+	"The application can handle addresses larger than 2 GiB.",
+	"Use of this flag is reserved for future use.",
+	"Little endian: LSB precedes MSB in memory.",
+	"The computer supports 32-bit words.",
+	"Debugging information was removed.",
+	"If the image is on removable media, copy and run from swap file.",
+	"If the image is on the network, copy and run from swap file.",
+	"The image is a system file.",
+	"The image is a dynamic link library (DLL).",
+	"The file should be run only on a uniprocessor computer.",
+	"Big endian: MSB precedes LSB in memory.",
+};
+
+static const char * const efi_pe_section_characteristics[32] = {
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"The section should not be padded to the next boundary.",
+	"Reserved.",
+	"The section contains executable code.",
+	"The section contains initialized data.",
+	"The section contains uninitialized data.",
+	"Reserved.",
+	"The section contains comments or other information.",
+	"Reserved.",
+	"The section will not become part of the image.",
+	"The section contains COMDAT data.",
+	"Reserved.",
+	"Reset speculative exceptions handling bits in the TLB entries.",
+	"The section contains data referenced through the global pointer.",
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Align data on a 1-byte boundary.",
+	"Align data on a 2-byte boundary.",
+	"Align data on a 8-byte boundary.",
+	"Align data on a 128-byte boundary.",
+	"The section contains extended relocations.",
+	"The section can be discarded as needed.",
+	"The section cannot be cached.",
+	"The section cannot be paged.",
+	"The section can be shared in memory.",
+	"The section can be executed as code.",
+	"The section can be read.",
+	"The section can be written to.",
+};
+
+const char * const efi_pe_dll_characteristics[16] = {
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Reserved.",
+	"Image can handle a high entropy 64-bit virtual address space.",
+	"DLL can be relocated at load time.",
+	"Code Integrity checks are enforced.",
+	"Image is NX compatible.",
+	"Isolation aware, but do not isolate the image.",
+	"Does not use structured exception (SE) handling.",
+	"Do not bind the image.",
+	"Image must execute in an AppContainer.",
+	"A WDM driver.",
+	"Image supports Control Flow Guard.",
+	"Terminal Server aware.",
+};
+
+const char *efi_pe_characteristic_string(unsigned int bit)
+{
+	if (bit >= sizeof(efi_pe_characteristic_strings) /
+		   sizeof(efi_pe_characteristic_strings[0]))
+		return NULL;
+
+	return efi_pe_characteristic_strings[bit];
+}
+
+const char *efi_pe_section_characteristic_string(unsigned int bit)
+{
+	if (bit >= sizeof(efi_pe_section_characteristics) /
+		   sizeof(efi_pe_section_characteristics[0]))
+		return NULL;
+
+	return efi_pe_section_characteristics[bit];
+}
+
+const char * const efi_pe_data_directory_names[16] = {
+	"Exports",
+	"Imports",
+	"Resources",
+	"Exceptions",
+	"Certificates",
+	"Base Relocations",
+	"Debug",
+	"Architecture",
+	"GlobalPtr",
+	"TLS",
+	"Load Config",
+	"Bound Import",
+	"IAT",
+	"Delay Import Descriptor",
+	"CLR Runtime Header",
+	"Reserved",
+};
+
+const char *efi_pe_machine_type_name(uint16_t machine)
+{
+	switch (machine) {
+	case IMAGE_FILE_MACHINE_I386:
+		return "Intel 386";
+	case IMAGE_FILE_MACHINE_AMD64:
+		return "x64";
+	case IMAGE_FILE_MACHINE_IA64:
+		return "Intel Itanium";
+	case IMAGE_FILE_MACHINE_ARM:
+		return "ARM little endian";
+	case IMAGE_FILE_MACHINE_THUMB:
+		return "ARM or Thumb (\"interworking\")";
+	case IMAGE_FILE_MACHINE_ARMNT:
+		return "ARM Thumb-2 little endian";
+	case IMAGE_FILE_MACHINE_ARM64:
+		return "ARM64 little endian";
+	case IMAGE_FILE_MACHINE_LOONGARCH32:
+		return "LoongArch 32-bit";
+	case IMAGE_FILE_MACHINE_LOONGARCH64:
+		return "LoongArch 64-bit";
+	case IMAGE_FILE_MACHINE_RISCV32:
+		return "RISC-V 32-bit";
+	case IMAGE_FILE_MACHINE_RISCV64:
+		return "RISC-V 64-bit";
+	case IMAGE_FILE_MACHINE_RISCV128:
+		return "RISC-V 128-bit";
+	case IMAGE_FILE_MACHINE_EBC:
+		return "EFI byte code";
+	default:
+		return NULL;
+	}
+}
+
+const char *efi_pe_subsystem_name(uint16_t subsystem)
+{
+	switch (subsystem) {
+	case IMAGE_SUBSYSTEM_EFI_APPLICATION:
+		return "EFI application";
+	case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
+		return "EFI boot service driver";
+	case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
+		return "EFI runtime driver";
+	case IMAGE_SUBSYSTEM_EFI_ROM:
+		return "EFI ROM image";
+	default:
+		return NULL;
+	}
+}
