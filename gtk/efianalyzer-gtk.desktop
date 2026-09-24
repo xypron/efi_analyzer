@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=EFI Analyzer
+Comment=Analyze UEFI binaries graphically
+Exec=efianalyzer-gtk %f
+Icon=efianalyzer
+Terminal=false
+Type=Application
+Categories=Development;Utility;
+MimeType=application/x-efi;application/x-executable;
