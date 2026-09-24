@@ -5,7 +5,7 @@ Makefile
 cmake_install.cmake
 
 # Executables
-efianalyzer-gtk
+efianalyze-gui
 
 # User configs
 CMakeUserPresets.json

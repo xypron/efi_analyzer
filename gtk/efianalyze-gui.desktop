@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=EFI Analyzer
+Name=EFI Analyzer GUI
 Comment=Analyze UEFI binaries graphically
-Exec=efianalyzer-gtk %f
+Exec=efianalyze-gui %f
 Icon=efianalyzer
 Terminal=false
 Type=Application

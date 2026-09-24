@@ -395,7 +395,7 @@ void efi_analyzer_main_window_load_file(EfiAnalyzerMainWindow *win,
 static char *config_file_path(void)
 {
 	char *dir = g_build_filename(g_get_user_config_dir(),
-				      "efianalyzer-gtk", NULL);
+				      "efianalyze-gui", NULL);
 
 	g_mkdir_with_parents(dir, 0700);
 	{

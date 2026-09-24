@@ -34,8 +34,16 @@ int main(int argc, char *argv[])
 	GtkApplication *app;
 	int status;
 
-	app = gtk_application_new("org.efianalyzer.gtk",
-				   G_APPLICATION_HANDLES_OPEN);
+	/*
+	 * Use a NULL application ID so GApplication does not try to
+	 * register/own a well-known name on the session D-Bus. This app
+	 * has no single-instance/D-Bus-activation requirement, and trying
+	 * to own "org.efianalyzer.gui" fails under strict snap confinement
+	 * unless a "dbus" slot is declared and connected (AppArmor denies
+	 * it by default: "... is not allowed to own the service ... due to
+	 * AppArmor policy").
+	 */
+	app = gtk_application_new(NULL, G_APPLICATION_HANDLES_OPEN);
 	g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
 	g_signal_connect(app, "open", G_CALLBACK(open_files), NULL);
 
