@@ -1,0 +1,149 @@
+name: efianalyzer-gui
+title: EFI Analyzer GUI
+base: core26
+version: '1.0'
+summary: Analyze UEFI binaries (GTK3 GUI)
+description: |
+  Graphical tool to inspect the headers, data directories, and
+  sections of PE/COFF/EFI binaries (e.g. UEFI applications and
+  drivers). Right-click a section or data directory row to save its
+  raw content to a file.
+contact: https://github.com/xypron/efi_analyzer/issues
+issues: https://github.com/xypron/efi_analyzer/issues
+source-code: https://github.com/xypron/efi_analyzer
+website: https://github.com/xypron/efi_analyzer
+license: BSD-2-Clause
+confinement: strict
+grade: stable
+assumes: [snapd2.43]
+
+# Manually reproduces what the snapcraft "gnome" extension generates
+# for core24, adapted to core26 and the gnome-core26/gnome-core26-sdk
+# snaps: as of snapcraft 9.1.2 the "gnome" extension does not support
+# core26 yet, so this depends directly on the gnome-core26 content
+# snap instead of using the extension or bundling a second copy of
+# the GTK3 stack.
+layout:
+  /usr/share/libdrm:
+    bind: $SNAP/gnome-platform/usr/share/libdrm
+  # gnome-core26's own conf.d files for the glycin image-loader helpers
+  # (used by GTK/gdk-pixbuf to load icons/images) reference absolute
+  # paths like /usr/libexec/glycin-loaders/2+/glycin-image-rs (see the
+  # "Re-mangle paths to glycin-loaders" step in gnome-core26's build
+  # recipe, which strips the /snap/gnome-core26-sdk/current prefix "to
+  # point to / where it will be bind-mounted by the snapcraft gnome
+  # extension"). Without this bind, gdk-pixbuf/GTK icon loading fails:
+  # "Could not spawn ... glycin-image-rs ...: No such file or directory"
+  /usr/libexec:
+    bind: $SNAP/gnome-platform/usr/libexec
+  # Mirrors the core24 "gnome" extension's layout, avoiding the
+  # "libpxbackend-1.0.so: cannot open shared object file" GIO warning.
+  /usr/lib/x86_64-linux-gnu/libproxy:
+    bind: $SNAP/gnome-platform/usr/lib/x86_64-linux-gnu/libproxy
+
+plugs:
+  gtk-3-themes:
+    interface: content
+    target: $SNAP/data-dir/themes
+    default-provider: gtk-common-themes
+  icon-themes:
+    interface: content
+    target: $SNAP/data-dir/icons
+    default-provider: gtk-common-themes
+  sound-themes:
+    interface: content
+    target: $SNAP/data-dir/sounds
+    default-provider: gtk-common-themes
+  gnome-core26:
+    interface: content
+    target: $SNAP/gnome-platform
+    default-provider: gnome-core26
+  gpu-2604:
+    interface: content
+    target: $SNAP/gpu-2604
+    default-provider: mesa-2604
+
+environment:
+  SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
+  GTK_USE_PORTAL: '1'
+  # The host's GTK_MODULES=gail:atk-bridge (inherited from the desktop
+  # session) makes GTK3 print a purely informational message on every
+  # launch ("Not loading module "atk-bridge": The functionality is
+  # provided by GTK natively."). Modern GTK3 provides ATK/accessibility
+  # support natively, so this module is redundant; clearing it silences
+  # the message without any loss of accessibility functionality.
+  GTK_MODULES: ''
+
+hooks:
+  configure:
+    plugs: [desktop]
+    # The snapcore/snapcraft-desktop-integration.git "gnome" Makefile
+    # (used by the gnome-sdk part below) installs to
+    # $(DESTDIR)/command-chain, i.e. no extra "snap/" prefix -- unlike
+    # the snapcraft "gnome" extension's own bundled command-chain
+    # scripts, which install to $(DESTDIR)/snap/command-chain instead.
+    command-chain: [command-chain/hooks-configure-fonts]
+
+apps:
+  efianalyzer-gui:
+    command: usr/bin/efianalyze-gui
+    # gpu-2604-wrapper (built by the gpu-wrapper part below) must run
+    # before desktop-launch so that libX11/libwayland/libEGL/libGL and
+    # friends -- which gnome-core26's libgtk-3.so.0 hard-depends on but
+    # does not itself ship -- are made available via the gpu-2604
+    # content snap (mesa-2604) before GTK3 is loaded. This mirrors what
+    # the snapcraft "gpu" extension wires up for core26.
+    command-chain:
+      - snap/command-chain/gpu-2604-wrapper
+      - command-chain/desktop-launch
+    desktop: usr/share/applications/efianalyze-gui.desktop
+    plugs:
+      - desktop
+      - desktop-legacy
+      - gsettings
+      - opengl
+      - wayland
+      - x11
+      # Strict confinement grants no filesystem access by default; the
+      # app needs to open/save arbitrary EFI/PE binaries from the
+      # user's home directory.
+      - home
+
+parts:
+  gnome-sdk:
+    plugin: make
+    source: https://github.com/snapcore/snapcraft-desktop-integration.git
+    source-subdir: gnome
+    build-snaps: [gnome-core26-sdk/latest/candidate]
+    make-parameters:
+      - PLATFORM_PLUG=gnome-core26
+      - WITH_GRAPHICS=false
+      - WITH_PYTHON=3.12
+
+  # Reproduces the snapcraft "gpu" extension's core26 wrapper: without
+  # this, gnome-core26's libgtk-3.so.0 fails to load at all because it
+  # has a hard ELF NEEDED dependency on libX11.so.6 (and libwayland-*,
+  # libEGL, libGL, libxcb, etc.) that gnome-core26 itself does not ship
+  # -- those libraries only come from the gpu-2604 content snap
+  # (mesa-2604), which is otherwise never mounted/used by this snap.
+  gpu-wrapper:
+    plugin: make
+    source: snap/gpu-wrapper
+    make-parameters:
+      - GPU_INTERFACE=gpu-2604
+
+  efianalyzer-gui:
+    after: [gnome-sdk]
+    plugin: cmake
+    source: .
+    source-subdir: gtk
+    build-snaps: [gnome-core26-sdk/latest/candidate]
+    build-environment:
+      - PKG_CONFIG_PATH: /snap/gnome-core26-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/pkgconfig:/snap/gnome-core26-sdk/current/usr/lib/pkgconfig:/snap/gnome-core26-sdk/current/usr/share/pkgconfig
+      - CMAKE_PREFIX_PATH: /snap/gnome-core26-sdk/current/usr
+      - LIBRARY_PATH: /snap/gnome-core26-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/gnome-core26-sdk/current/usr/lib${LIBRARY_PATH:+:$LIBRARY_PATH}
+      - LD_LIBRARY_PATH: /snap/gnome-core26-sdk/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/gnome-core26-sdk/current/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+    stage-packages:
+      - libc6
