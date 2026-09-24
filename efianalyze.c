@@ -209,12 +209,41 @@ static void print_section_info(int fd, off_t pos, struct coff_header *coff)
 	struct section_header sh;
 	off_t section_table_start = pos;
 	off_t first_section_addr = UINT_MAX;
+	struct stat st;
+	off_t file_size;
+
+	/*
+	 * Used to bound-check each section's raw data range before
+	 * attempting to read it for device tree detection below; if
+	 * fstat() fails, treat the file as having size 0 so that no
+	 * section is considered in-bounds (fail soft, never abort).
+	 */
+	file_size = fstat(fd, &st) == 0 ? st.st_size : 0;
 
 	printf("Number of sections: %d\n", coff->NumberOfSections);
 	for (i = 0; i < coff->NumberOfSections; ++i) {
 		rds(fd, pos, &sh);
 		pos += sizeof(sh);
 		printf("Section[%d]: %.8s\n", i, sh.Name);
+
+		/*
+		 * If this section's raw data is a valid flattened
+		 * device tree, print its /compatible property as the
+		 * first line of the section's information.
+		 * efi_pe_fdt_compatible_fd() fails soft (returns
+		 * NULL) for anything that is not a device tree.
+		 */
+		if ((off_t)sh.PointerToRawData +
+			    (off_t)sh.SizeOfRawData <= file_size) {
+			char *compatible = efi_pe_fdt_compatible_fd(
+				fd, sh.PointerToRawData, sh.SizeOfRawData);
+
+			if (compatible) {
+				printf("  Compatible: %s\n", compatible);
+				free(compatible);
+			}
+		}
+
 		printf("  Virtual size: 0x%x\n", sh.VirtualSize);
 		printf("  Virtual address: 0x%x\n", sh.VirtualAddress);
 		printf("  Size of raw data: 0x%x\n", sh.SizeOfRawData);
