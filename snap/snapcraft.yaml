@@ -17,6 +17,11 @@ confinement: strict
 grade: devel
 assumes: [snapd2.43]
 
+platforms:
+  amd64:
+  arm64:
+  riscv64:
+
 # Manually reproduces what the snapcraft "gnome" extension generates
 # for core24, adapted to core26 and the gnome-core26/gnome-core26-sdk
 # snaps: as of snapcraft 9.1.2 the "gnome" extension does not support
