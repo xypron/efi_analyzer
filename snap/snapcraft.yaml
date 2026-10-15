@@ -14,7 +14,7 @@ source-code: https://github.com/xypron/efi_analyzer
 website: https://github.com/xypron/efi_analyzer
 license: BSD-2-Clause
 confinement: strict
-grade: devel
+grade: stable
 assumes: [snapd2.43]
 
 platforms:
