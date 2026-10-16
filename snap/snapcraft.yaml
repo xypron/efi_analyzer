@@ -1,7 +1,7 @@
 name: efianalyzer-gui
 title: EFI Analyzer GUI
 base: core26
-version: '0.1'
+version: '0.1.1'
 summary: Analyze UEFI binaries (GTK3 GUI)
 description: |
   Graphical tool to inspect the headers, data directories, and
